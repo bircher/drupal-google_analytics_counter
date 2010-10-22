@@ -1,0 +1,8 @@
+; $Id$
+
+name = Google Analytics Counter
+description = Lightweight page view counter drawing on data collected by Google Analytics.
+dependencies[] = google_analytics_api
+dependencies[] = google_analytics_reports
+package = Statistics
+core = 6.x
