@@ -121,9 +121,11 @@ function google_analytics_counter_gac_get_count(){
   // Return Data
   $json = array();
   if (!empty($sumarray)){
+    //$json['#google-analytics-counter-'.md5($path)] = google_analytics_counter_construct_content($sumarray);
     $json['#google-analytics-counter'] = google_analytics_counter_construct_content($sumarray);
   }
   else {
+    //$json['#google-analytics-counter-'.md5($path)] = NULL;
     $json['#google-analytics-counter'] = NULL;
   }
 
@@ -144,8 +146,13 @@ function google_analytics_counter_get_sum_per_path($path){
   // return;
   $timenow = time();
 
-  // 
-  
+  // Recognize special path 'all'
+  if ($path == 'all'){
+    // Let's use a less common path (this is for GA API)
+    // Requires GA API to adopt http://drupal.org/node/949986
+    $path = 'ga_api_all_paths';
+  }
+
   // Watch out for http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
   //$cache_period = 60*60*24;
   $cache_period = round(variable_get('google_analytics_counter_api_refresh',6)*3600);
@@ -206,7 +213,7 @@ function google_analytics_counter_get_sum_per_path($path){
     // Grab the data using Google Analytics API (http://drupal.org/project/google_analytics_api)
     $request = array(
     #'#dimensions' => array('pagePath', 'date'),
-    '#dimensions' => array('date'),
+    '#dimensions' => array('date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
     // '#metrics' => array('pageviews', 'timeOnPage', 'bounces', 'uniquePageviews'),
     '#metrics' => array('pageviews'),
     #'#sort_metric' => array('date', 'pagePath'),
@@ -214,7 +221,7 @@ function google_analytics_counter_get_sum_per_path($path){
     '#start_date' => strtotime('2005-01-01') 
     );
     $rows = google_analytics_reports_path_report($request, $path);
-    //dsm($rows); 
+    #dsm($rows); 
 
     $sum_of_pageviews = 0;
     $countdays = 0;
@@ -407,10 +414,11 @@ function google_analytics_counter_display($path=''){
   $block_content .= '<a id="gact" href="/" title="'.$tooltip.'">*</a>';
   */
 
-  $block_content .= '<div id="google-analytics-counter">';
+  //$block_content .= '<span id="google-analytics-counter-'.md5($path).'">';
+  $block_content .= '<span id="google-analytics-counter">';
   $sumarray = google_analytics_counter_get_sum_per_path($path);
   $block_content .= google_analytics_counter_construct_content($sumarray);
-  $block_content .= '</div>';
+  $block_content .= '</span>';
 
   $js_code = '';
 
