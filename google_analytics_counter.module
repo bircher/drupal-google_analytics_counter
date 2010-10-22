@@ -144,6 +144,8 @@ function google_analytics_counter_get_sum_per_path($path){
   // return;
   $timenow = time();
 
+  // 
+  
   // Watch out for http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
   //$cache_period = 60*60*24;
   $cache_period = round(variable_get('google_analytics_counter_api_refresh',6)*3600);
@@ -204,14 +206,13 @@ function google_analytics_counter_get_sum_per_path($path){
     // Grab the data using Google Analytics API (http://drupal.org/project/google_analytics_api)
     $request = array(
     #'#dimensions' => array('pagePath', 'date'),
-    #'#dimensions' => array('date'),
+    '#dimensions' => array('date'),
     // '#metrics' => array('pageviews', 'timeOnPage', 'bounces', 'uniquePageviews'),
     '#metrics' => array('pageviews'),
     #'#sort_metric' => array('date', 'pagePath'),
     // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
     '#start_date' => strtotime('2005-01-01') 
     );
-    //$path = 'ga_api_all_paths';
     $rows = google_analytics_reports_path_report($request, $path);
     //dsm($rows); 
 
