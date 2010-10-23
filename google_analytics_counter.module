@@ -121,12 +121,12 @@ function google_analytics_counter_gac_get_count(){
   // Return Data
   $json = array();
   if (!empty($sumarray)){
-    //$json['#google-analytics-counter-'.md5($path)] = google_analytics_counter_construct_content($sumarray);
-    $json['#google-analytics-counter'] = google_analytics_counter_construct_content($sumarray);
+    $json['#google-analytics-counter-'.md5($path)] = google_analytics_counter_construct_content($sumarray);
+    //$json['#google-analytics-counter'] = google_analytics_counter_construct_content($sumarray);
   }
   else {
-    //$json['#google-analytics-counter-'.md5($path)] = NULL;
-    $json['#google-analytics-counter'] = NULL;
+    $json['#google-analytics-counter-'.md5($path)] = NULL;
+    //$json['#google-analytics-counter'] = NULL;
   }
 
   // Send JSON Back
@@ -221,10 +221,11 @@ function google_analytics_counter_get_sum_per_path($path){
     '#start_date' => strtotime('2005-01-01') 
     );
     $rows = google_analytics_reports_path_report($request, $path);
-    #dsm($rows); 
+    //dsm($rows); 
 
     $sum_of_pageviews = 0;
     $countdays = 0;
+    $lookingforfirsthit = TRUE;
     foreach($rows as $date){
       // In case some error message appears, set zero and get out.
       if (!is_numeric($date['pageviews'])) {
@@ -232,7 +233,11 @@ function google_analytics_counter_get_sum_per_path($path){
         break;
       }
       $sum_of_pageviews += $date['pageviews'];
-      $countdays ++;
+      // We need to count only days since when the first hit was registered
+      if ($date['pageviews'] <> 0 OR !$lookingforfirsthit){
+        $countdays ++;
+        $lookingforfirsthit = FALSE;
+      }
     }
 
     // We need to store the count, days of counting, and also the absolute time of caching as well.
@@ -242,6 +247,8 @@ function google_analytics_counter_get_sum_per_path($path){
     cache_set($key, $result, 'cache', $safe_margin_cache_time);
     //drupal_set_message('GA Counter for '.$path.' has been updated ['.google_analytics_counter_construct_content($result).']. Elapsed time: '.(time()-$timenow).' seconds.');      
   }
+
+  #dsm($result);
 
   $lastfresh = $timenow-$result[2];
 
@@ -414,8 +421,8 @@ function google_analytics_counter_display($path=''){
   $block_content .= '<a id="gact" href="/" title="'.$tooltip.'">*</a>';
   */
 
-  //$block_content .= '<span id="google-analytics-counter-'.md5($path).'">';
-  $block_content .= '<span id="google-analytics-counter">';
+  $block_content .= '<span id="google-analytics-counter-'.md5($path).'">';
+  //$block_content .= '<span id="google-analytics-counter">';
   $sumarray = google_analytics_counter_get_sum_per_path($path);
   $block_content .= google_analytics_counter_construct_content($sumarray);
   $block_content .= '</span>';
