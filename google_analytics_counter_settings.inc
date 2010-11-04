@@ -46,12 +46,20 @@ function google_analytics_counter_admin() {
   '#description' => t("After initial display, the counter value can be refreshed using AJAX calls directly on the web page. Set the delay, in seconds, of this refresh. Note that too frequent refresh may overload your server. If you want to use the automatic refresh, be careful about values lower than 60 (<u>seconds</u>). To disable the refresh, set an empty value (or set it to 0)."),
   );
 
+  $form['google_analytics_counter_update_node_counter'] = array(
+  '#type' => 'checkbox',
+  '#title' => t('Update Drupal node counter'),
+  '#default_value' => variable_get('google_analytics_counter_update_node_counter', '0'),
+  //'#options' => array(0,1),
+  '#description' => t("Replaces Drupal's own count of node (and only node!) page views by the counts fetched from Google Analytics. Note that this count is not extrapolated or refreshed automatically. However, it is particularly useful if you need to show / sort by the counter values in Views. Additionally, if you have the core Drupal module 'Statistics' enabled, the page views will on node pages (usually at the bottom of the content area)."),
+  );
+
   $form['google_analytics_counter_debug'] = array(
   '#type' => 'checkbox',
   '#title' => t('Display debug info in tooltip'),
   '#default_value' => variable_get('google_analytics_counter_debug', ''),
   //'#options' => array(0,1),
-  '#description' => t("Check this if you want to display detail information in the tooltip of the displayed count. Useful for debugging."),
+  '#description' => t("Check this if you want to display detail information about the data. Useful for debugging."),
   );
 
   return system_settings_form($form);
