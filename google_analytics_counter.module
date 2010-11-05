@@ -262,7 +262,7 @@ function google_analytics_counter_get_sum_per_path($path){
         }
       }
 
-      if ($nid !== FALSE) {
+      if ($nid !== FALSE AND $sum_of_pageviews <> 0) {
         // This is a node, so update the node's counters.
         // We don't do anything with daycount here
         db_query('UPDATE {node_counter} SET daycount = 0, totalcount = %d, timestamp = %d WHERE nid = %d', $sum_of_pageviews, time(), $nid);
