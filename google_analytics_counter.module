@@ -369,7 +369,7 @@ function google_analytics_counter_construct_content($sumarray){
     // If debugger is on, and if the user has admin rights for Google Analytics Counter.
     if (user_access('administer google analytics counter')){
       if ($debuggeron == 1){
-        $result .= '<br><font color="teal">'.$titlemsg.'</font>';
+        $result .= '<br/><font color="teal">'.$titlemsg.'</font>';
       }
     }
 
