@@ -247,16 +247,32 @@ function google_analytics_counter_get_sum_per_path($path){
 
     // All right. Now - if it's desired and if it's a node page - update Drupal's own page view counter
     if (variable_get('google_analytics_counter_update_node_counter',0) == 1){
+
+      // Let's get the nid
+      $nid = FALSE;
       $pathbits = explode('/',$path);
-      // We are counting content views.
       if (($pathbits[0] == 'node') && is_numeric($pathbits[1])) {
+        // Provided in format node/x
+        $nid = $pathbits[1];
+      } 
+      else {
+        $pathbits = drupal_lookup_path('source',$path);
+      $pathbits = explode('/',$pathbits);
+        if (($pathbits[0] == 'node') && is_numeric($pathbits[1])) {
+        // Provided as an alias
+        $nid = $pathbits[1];
+        }
+      }
+
+      #dsm($nid);
+      if ($nid !== FALSE) {
         // This is a node, so update the node's counters.
         // We don't do anything with daycount here
-        db_query('UPDATE {node_counter} SET daycount = 0, totalcount = %d, timestamp = %d WHERE nid = %d', $sum_of_pageviews, time(), $pathbits[1]);
+        db_query('UPDATE {node_counter} SET daycount = 0, totalcount = %d, timestamp = %d WHERE nid = %d', $sum_of_pageviews, time(), $nid);
         // If we affected 0 rows, this is the first time viewing the node.
         if (!db_affected_rows()) {
           // We must create a new row to store counters for the new node.
-          db_query('INSERT INTO {node_counter} (nid, daycount, totalcount, timestamp) VALUES (%d, 0, %d, %d)', $pathbits[1], $sum_of_pageviews, time());
+          db_query('INSERT INTO {node_counter} (nid, daycount, totalcount, timestamp) VALUES (%d, 0, %d, %d)', $nid, $sum_of_pageviews, time());
         }
       }
     }
