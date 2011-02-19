@@ -186,7 +186,7 @@ function google_analytics_counter_get_sum_per_path($path){
   $noconcurrency = FALSE;
   // $concurrencymax = 1 means that the difference of current and recorded time must be at least 1 second, which is all right. Should not need to be higher, except maybe for testing.
   $concurrencymax = variable_get('google_analytics_counter_concurrency',1);
-  if (($timenow - variable_get('google_analytics_counter_latest',$timenow) >= $concurrencymax)){
+  if (($timenow - variable_get('google_analytics_counter_latest',($timenow-$concurrencymax)) >= $concurrencymax)){ // If the value is not yet there (first run!), use ($timenow-$concurrencymax) otherwise it will always detect concurrency!
     $noconcurrency = TRUE;
   }
   $cachedvalue = '';
