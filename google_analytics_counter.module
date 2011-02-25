@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 require_once( 'google_analytics_counter_settings.inc' );
 

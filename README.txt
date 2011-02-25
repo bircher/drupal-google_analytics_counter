@@ -1,4 +1,3 @@
-; $Id$
 
 Google Analytics Counter is a lightweight page view counter drawing on data collected by Google Analytics.
 
