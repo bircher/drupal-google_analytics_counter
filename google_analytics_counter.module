@@ -213,6 +213,14 @@ function google_analytics_counter_get_sum_per_path($path) {
         'metrics' => array('ga:pageviews'),
             //'#start_date' => strtotime('2005-01-01'), // We want to retrieve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
     );
+    /*
+    $request = array(
+        'dimensions' => array('ga:date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
+        'metrics' => array('ga:pageviews'),
+        'start_date' => strtotime('-5 days'), // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+        'end_date' => strtotime('-5 days'), // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+    );
+     */
     $rows = _google_analytics_counter_path_report($request, $path);
 
     //
