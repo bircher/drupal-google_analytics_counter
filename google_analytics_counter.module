@@ -397,7 +397,6 @@ function google_analytics_counter_get_sum_per_path($path) {
 
         /*
           db_query("UPDATE {node} SET title='%s', status=%d WHERE uid=%d", 'hello world', 1, 5);
-
           // Drupal 7
           db_update('node')
           ->fields(array('title' => 'hello world', 'status' => 1))
