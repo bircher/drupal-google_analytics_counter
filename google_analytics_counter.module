@@ -264,14 +264,6 @@ function google_analytics_counter_get_sum_per_path($path) {
       }
      */
 
-    /*
-      // Getting something like [0] => [pageviews][date], [1] => [pageviews][date], ...
-      $rows = array();
-      foreach ($data as $item) {
-      //$
-      }
-     */
-
     $sum_of_pageviews = 0;
     $countdays = 0;
     $lookingforfirsthit = TRUE;
