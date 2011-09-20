@@ -2,7 +2,8 @@
 
 define('GOOGLE_ANALYTICS_COUNTER_DEBUG', variable_get('google_analytics_counter_debug', ''));
 
-require_once DRUPAL_ROOT . '/' .  'google_analytics_counter_settings.inc';
+//require_once DRUPAL_ROOT . '/' .  'google_analytics_counter_settings.inc';
+module_load_include('inc', 'google_analytics_counter', 'google_analytics_counter_settings');
 
 /**
  * Valid permissions for this module
@@ -10,14 +11,14 @@ require_once DRUPAL_ROOT . '/' .  'google_analytics_counter_settings.inc';
  */
 function google_analytics_counter_permission() {
   return array(
-    'access google analytics counter' => array(
-      'title' => t('access google analytics counter'),
-      'description' => t('TODO Add a description for \'access google analytics counter\''),
-    ),
-    'administer google analytics counter' => array(
-      'title' => t('administer google analytics counter'),
-      'description' => t('TODO Add a description for \'administer google analytics counter\''),
-    ),
+      'access google analytics counter' => array(
+          'title' => t('access google analytics counter'),
+          'description' => t('TODO Add a description for \'access google analytics counter\''),
+      ),
+      'administer google analytics counter' => array(
+          'title' => t('administer google analytics counter'),
+          'description' => t('TODO Add a description for \'administer google analytics counter\''),
+      ),
   );
 }
 
@@ -43,39 +44,39 @@ function google_analytics_counter_menu() {
   $items = array();
 
   $items['google_analytics_counter/gac_get_count'] = array(
-    'title' => 'gac_get_count',
-    'description' => 'gac_get_count',
-    'page callback' => 'google_analytics_counter_gac_get_count',
-    'access arguments' => array('access google analytics counter'),
-    'type' => MENU_CALLBACK,
+      'title' => 'gac_get_count',
+      'description' => 'gac_get_count',
+      'page callback' => 'google_analytics_counter_gac_get_count',
+      'access arguments' => array('access google analytics counter'),
+      'type' => MENU_CALLBACK,
   );
 
   $items['admin/config/google_analytics_counter'] = array(
-    'title' => 'Google Analytics Counter',
-    'description' => 'Configure Google Analytics Counter module',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('google_analytics_counter_admin'),
-    'access arguments' => array('administer google analytics counter'),
-    'type' => MENU_NORMAL_ITEM,
-    'weight' => 0,
+      'title' => 'Google Analytics Counter',
+      'description' => 'Configure Google Analytics Counter module',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('google_analytics_counter_admin'),
+      'access arguments' => array('administer google analytics counter'),
+      'type' => MENU_NORMAL_ITEM,
+      'weight' => 0,
   );
   $items['admin/config/google_analytics_counter/settings'] = array(
-    'title' => 'Settings',
-    'description' => 'General settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('google_analytics_counter_admin'),
-    'access arguments' => array('administer google analytics counter'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => 5,
+      'title' => 'Settings',
+      'description' => 'General settings',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('google_analytics_counter_admin'),
+      'access arguments' => array('administer google analytics counter'),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => 5,
   );
   // A shortcut to the permissions settings for this module.
   $items['admin/config/google_analytics_counter/permissions'] = array(
-    'title' => 'Permissions',
-    'description' => 'Configure access permissions',
-    'page callback' => 'google_analytics_counter_perms',
-    'access arguments' => array('administer google analytics counter'),
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 10,
+      'title' => 'Permissions',
+      'description' => 'Configure access permissions',
+      'page callback' => 'google_analytics_counter_perms',
+      'access arguments' => array('administer google analytics counter'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 10,
   );
 
   return $items;
@@ -95,7 +96,8 @@ function google_analytics_counter_perms() {
 function google_analytics_counter_block_info() {
   if (TRUE) {
     // Generate listing of blocks from this module, for the admin/block page
-    $block[0]["info"] = $bname;
+    $block[0]["info"] = t("Google Analytics Counter");
+    return $block;
   }
 }
 
@@ -109,12 +111,12 @@ function google_analytics_counter_block_view($delta) {
 
     $block_content = google_analytics_counter_display();
 
+    $bname = t('Google Analytics Counter');
     $block['subject'] = $bname;
     $block['subject'] = $bname;
     if ($block_content == '') {
       $block['content'] = t('N/A');
-    }
-    else {
+    } else {
       $block['content'] = $block_content;
     }
   }
@@ -124,14 +126,17 @@ function google_analytics_counter_block_view($delta) {
  * @todo Please document this function.
  * @see http://drupal.org/node/1354
  */
-function google_analytics_counter_block_OLD($op = 'list', $delta = 0) {
+/*
+  function google_analytics_counter_block_OLD($op = 'list', $delta = 0) {
   // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
   // set up an empty array which will contain the block contents
   $block = array();
   $bname = t('Google Analytics Counter');
   // return the built content
   return $block;
-}
+  }
+ *
+ */
 
 /**
  * @todo Please document this function.
@@ -151,8 +156,7 @@ function google_analytics_counter_gac_get_count() {
   $json = array();
   if (!empty($sumarray)) {
     $json['#google-analytics-counter-' . md5($path)] = google_analytics_counter_construct_content($sumarray) . ' (AJAX)';
-  }
-  else {
+  } else {
     $json['#google-analytics-counter-' . md5($path)] = NULL;
   }
 
@@ -227,8 +231,7 @@ function google_analytics_counter_get_sum_per_path($path) {
   if ((($cache = cache_get($key)) AND !empty($cache->data) AND !$needfreshvalue) OR !$noconcurrency OR !$apirequestallowed) {
     $result = $cache->data;
     $cachedvalue = t(' This value was fetched from Drupal cache.');
-  }
-  else {
+  } else {
 
     // Let's set a time variable indicating no other script should retrieve Google Analytics data within some period.
     variable_set('google_analytics_counter_latest', $timenow);
@@ -238,28 +241,28 @@ function google_analytics_counter_get_sum_per_path($path) {
 
     // Grab the data using http://drupal.org/project/google_analytics_reports -- see http://drupal.org/node/1144994#comment-4431586
     /*
-     $request = array(
-     #'#dimensions' => array('pagePath', 'date'),
-     '#dimensions' => array('date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
-     // '#metrics' => array('pageviews', 'timeOnPage', 'bounces', 'uniquePageviews'),
-     '#metrics' => array('pageviews'),
-     #'#sort_metric' => array('date', 'pagePath'),
-     // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
-     '#start_date' => strtotime('2005-01-01')
-     );
+      $request = array(
+      #'#dimensions' => array('pagePath', 'date'),
+      '#dimensions' => array('date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
+      // '#metrics' => array('pageviews', 'timeOnPage', 'bounces', 'uniquePageviews'),
+      '#metrics' => array('pageviews'),
+      #'#sort_metric' => array('date', 'pagePath'),
+      // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+      '#start_date' => strtotime('2005-01-01')
+      );
      */
     $request = array(
-      'dimensions' => array('ga:date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
-      'metrics' => array('ga:pageviews'),
-      //'#start_date' => strtotime('2005-01-01'), // We want to retrieve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+        'dimensions' => array('ga:date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
+        'metrics' => array('ga:pageviews'),
+            //'#start_date' => strtotime('2005-01-01'), // We want to retrieve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
     );
     /*
-     $request = array(
-     'dimensions' => array('ga:date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
-     'metrics' => array('ga:pageviews'),
-     'start_date' => strtotime('-5 days'), // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
-     'end_date' => strtotime('-5 days'), // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
-     );
+      $request = array(
+      'dimensions' => array('ga:date'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
+      'metrics' => array('ga:pageviews'),
+      'start_date' => strtotime('-5 days'), // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+      'end_date' => strtotime('-5 days'), // We want to retrueve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+      );
      */
     $rows = _google_analytics_counter_path_report($request, $path);
 
@@ -286,30 +289,30 @@ function google_analytics_counter_get_sum_per_path($path) {
      */
     //function google_analytics_api_report_data($params = array(), $cache_options = array()) {
     /*
-     $params = array(
-     'metrics' => array('ga:visits'),
-     'dimensions' => array('ga:date'),
-     'sort_metric' => array('ga:date'),
-     'start_date' => strtotime('-31 days'),
-     'end_date' => strtotime('-1 day'),
-     );
-     $feed = google_analytics_api_report_data($params);
-     if ($feed->error) {
-     return FALSE;
-     }
-     $max_visits = 0;
-     foreach ($feed->results as $row) {
-     $data[] = $row['visits'];
-     $max_visits = max($row['visits'], $max_visits);
-     }
+      $params = array(
+      'metrics' => array('ga:visits'),
+      'dimensions' => array('ga:date'),
+      'sort_metric' => array('ga:date'),
+      'start_date' => strtotime('-31 days'),
+      'end_date' => strtotime('-1 day'),
+      );
+      $feed = google_analytics_api_report_data($params);
+      if ($feed->error) {
+      return FALSE;
+      }
+      $max_visits = 0;
+      foreach ($feed->results as $row) {
+      $data[] = $row['visits'];
+      $max_visits = max($row['visits'], $max_visits);
+      }
      */
 
     /*
-     // Getting something like [0] => [pageviews][date], [1] => [pageviews][date], ...
-     $rows = array();
-     foreach ($data as $item) {
-     //$
-     }
+      // Getting something like [0] => [pageviews][date], [1] => [pageviews][date], ...
+      $rows = array();
+      foreach ($data as $item) {
+      //$
+      }
      */
 
     $sum_of_pageviews = 0;
@@ -341,11 +344,10 @@ function google_analytics_counter_get_sum_per_path($path) {
       // Let's get the nid
       $nid = FALSE;
       $pathbits = explode('/', $path);
-      if (($pathbits[0] == 'node') && is_numeric($pathbits[1])) {
+      if ((@$pathbits[0] == 'node') && is_numeric($pathbits[1])) {
         // Provided in format node/x
-        $nid = $pathbits[1];
-      }
-      else {
+        $nid = @$pathbits[1];
+      } else {
         $pathbits = drupal_lookup_path('source', $path);
         $pathbits = explode('/', $pathbits);
         if (($pathbits[0] == 'node') && is_numeric($pathbits[1])) {
@@ -355,32 +357,53 @@ function google_analytics_counter_get_sum_per_path($path) {
       }
 
       if ($nid !== FALSE AND $sum_of_pageviews <> 0) {
+
         // This is a node, so update the node's counters.
         // We don't do anything with daycount here
-        // TODO Please review the conversion of this statement to the D7 database API syntax.
-        /* db_query('UPDATE {node_counter} SET daycount = 0, totalcount = %d, timestamp = %d WHERE nid = %d', $sum_of_pageviews, REQUEST_TIME, $nid) */
-        db_update('node_counter')
-  ->fields(array(
+        // Or we must create a new row to store counters for the new node.
+        /*
+          // TODO Please review the conversion of this statement to the D7 database API syntax.
+          db_update('node_counter')
+          ->fields(array(
           'daycount' => 0,
           'totalcount' => $sum_of_pageviews,
           'timestamp' => REQUEST_TIME,
-        ))
-  ->condition('nid', $nid)
-  ->execute();
-        // If we affected 0 rows, this is the first time viewing the node.
-        if (!db_affected_rows()) {
-          // We must create a new row to store counters for the new node.
-          // TODO Please review the conversion of this statement to the D7 database API syntax.
-          /* db_query('INSERT INTO {node_counter} (nid, daycount, totalcount, timestamp) VALUES (%d, 0, %d, %d)', $nid, $sum_of_pageviews, REQUEST_TIME) */
-          $id = db_insert('node_counter')
-  ->fields(array(
-            'nid' => $nid,
-            'daycount' => 0,
-            'totalcount' => $sum_of_pageviews,
-            'timestamp' => REQUEST_TIME,
           ))
-  ->execute();
-        }
+          ->condition('nid', $nid)
+          ->execute();
+          // If we affected 0 rows, this is the first time viewing the node.
+          if (!dbaffected...()) {
+          // TODO Please review the conversion of this statement to the D7 database API syntax.
+          $id = db_insert('node_counter')
+          ->fields(array(
+          'nid' => $nid,
+          'daycount' => 0,
+          'totalcount' => $sum_of_pageviews,
+          'timestamp' => REQUEST_TIME,
+          ))
+          ->execute();
+          }
+         */
+
+        // http://drupal.org/node/310085
+        db_merge('node_counter')
+                ->key(array('nid' => $nid))
+                ->fields(array(
+                    'daycount' => 0,
+                    'totalcount' => $sum_of_pageviews,
+                    'timestamp' => REQUEST_TIME,
+                ))
+                ->execute();
+
+        /*
+          db_query("UPDATE {node} SET title='%s', status=%d WHERE uid=%d", 'hello world', 1, 5);
+
+          // Drupal 7
+          db_update('node')
+          ->fields(array('title' => 'hello world', 'status' => 1))
+          ->condition('uid', 5)
+          ->execute();
+         */
       }
     }
   }
@@ -418,8 +441,7 @@ function google_analytics_counter_get_sum_per_path($path) {
       $debug .= t(' There is no problem with concurrency (');
       $debug .= ($timenow - variable_get('google_analytics_counter_latest', $timenow)) . ' seconds';
       $debug .= ' > ' . $concurrencymax . ').';
-    }
-    else {
+    } else {
       $debug .= t(' There is a concurrency problem (');
       $debug .= ($timenow - variable_get('google_analytics_counter_latest', $timenow)) . ' seconds';
       $debug .= ' < ' . $concurrencymax . ')!';
@@ -439,24 +461,24 @@ function google_analytics_counter_get_sum_per_path($path) {
 /*
  * Function to collect together data for different aliases.
  */
+
 function _google_analytics_counter_path_report($request, $path = NULL, $group_by = 'date') {
   $data = array();
   if ($path == 'ga_api_all_paths') {
     $cachehere = array(
-      'cid' => 'google_analytics_counter_all',
-      'expire' => google_analytics_reports_cache_time(),
-      'refresh' => FALSE,
+        'cid' => 'google_analytics_counter_all',
+        'expire' => google_analytics_reports_cache_time(),
+        'refresh' => FALSE,
     );
     $new_data = google_analytics_api_report_data($request, $cachehere);
     $new_data = array_values((array) $new_data->results); // Make an array from inside the object.
-  }
-  else {
+  } else {
     foreach (_google_analytics_counter_path_filter($path) as $filter) {
       $request['filters'] = $filter;
       $cachehere = array(
-        'cid' => 'google_analytics_counter_' . md5(serialize($request)),
-        'expire' => google_analytics_reports_cache_time(),
-        'refresh' => FALSE,
+          'cid' => 'google_analytics_counter_' . md5(serialize($request)),
+          'expire' => google_analytics_reports_cache_time(),
+          'refresh' => FALSE,
       );
       $new_data = google_analytics_api_report_data($request, $cachehere);
       $new_data = array_values((array) $new_data->results); // Make an array from inside the object.
@@ -487,36 +509,36 @@ function _google_analytics_counter_path_filter($node_path = NULL) {
   /* $filters = implode(",",$filters); */
 
   /*
-   // Okay, this is ridiculous.  Google Analytics regex filters
-   // have a limit of 32 characters.  Therefore we can't simply
-   // create one filter per pagePath.  Instead we are going too
-   // do a "contains substring" match on the path, and then take
-   // as many of the ending characters paired with ([?#].*)?$. If
-   // this will all fit in one regex under 32 characters then so
-   // be it.  Return a string if they all do, or an array if not.
-   // 32 - 12 = 20 characters maximum for alias
-   $under_filters = array();
-   $over_filters = array();
-   foreach ($aliases as $alias) {
-   if (strlen($alias) <= 20) {
-   $under_filters[] = 'pagePath=~^/' . $alias . '([?#].*)?$';
-   } else {
-   $over_filters[] = array(
-   'pagePath=@ /' . $alias,
-   // 32 - 10 = 22 characters
-   'pagePath=~ ' . substr($alias, -22) . '([?#].*)?$'
-   );
-   }
-   }
+    // Okay, this is ridiculous.  Google Analytics regex filters
+    // have a limit of 32 characters.  Therefore we can't simply
+    // create one filter per pagePath.  Instead we are going too
+    // do a "contains substring" match on the path, and then take
+    // as many of the ending characters paired with ([?#].*)?$. If
+    // this will all fit in one regex under 32 characters then so
+    // be it.  Return a string if they all do, or an array if not.
+    // 32 - 12 = 20 characters maximum for alias
+    $under_filters = array();
+    $over_filters = array();
+    foreach ($aliases as $alias) {
+    if (strlen($alias) <= 20) {
+    $under_filters[] = 'pagePath=~^/' . $alias . '([?#].*)?$';
+    } else {
+    $over_filters[] = array(
+    'pagePath=@ /' . $alias,
+    // 32 - 10 = 22 characters
+    'pagePath=~ ' . substr($alias, -22) . '([?#].*)?$'
+    );
+    }
+    }
 
-   // Add pipes and put together under and over filters.
-   $filters = array();
-   if ($under_filters) {
-   $filters[] = implode(' || ', $under_filters);
-   }
-   foreach ($over_filters as $filter) {
-   $filters[] = implode(' && ', $filter);
-   }
+    // Add pipes and put together under and over filters.
+    $filters = array();
+    if ($under_filters) {
+    $filters[] = implode(' || ', $under_filters);
+    }
+    foreach ($over_filters as $filter) {
+    $filters[] = implode(' && ', $filter);
+    }
    */
   return $filters;
 }
@@ -536,9 +558,10 @@ function _google_analytics_counter_path_aliases($node_path = NULL) {
 
   // Grab all aliases.
   $aliases = array($node_path);
-  $result = db_query("SELECT * FROM {url_alias} WHERE src = :src", array(':src' => $node_path));
-  while ($row = db_fetch_array($result)) {
-    $aliases[] = $row['dst'];
+  $result = db_query("SELECT * FROM {url_alias} WHERE source = :source", array(':source' => $node_path));
+  //while ($row = db_fetch_array($result)) {
+  foreach ($result as $row) {
+    $aliases[] = $row->alias;
   }
 
   // If this is the front page, add the base path too, and index.php for good measure.
@@ -582,8 +605,7 @@ function google_analytics_counter_construct_content($sumarray) {
     // If $sumarray[2] is zero, it means nothing was fetched (cache expired but there was concurrency and new data could not be retrieved). We will return nothing -- until new value can be retrieved.
     //$result = '***'.$countdays.'***';
     $result = '';
-  }
-  else {
+  } else {
     $result .= $sum_of_pageviews;
 
     // If debugger is on, and if the user has admin rights for Google Analytics Counter.
@@ -601,15 +623,33 @@ function google_analytics_counter_construct_content($sumarray) {
 /**
  * Implements hook_filter_info().
  */
-function google_analytics_counter_filter_info() {
+function google_analytics_countery_filter_info() {
+  $filters['filter_google_analytics_counter'] = array(
+      'title' => t('Google Analytics Counter tag'),
+      'description' => t('Substitutes a special Google Analytics Counter tag [gac|...] with the actual content.'),
+      'prepare callback' => 'google_analytics_counter_filter_google_analytics_counter_prepare',
+      'process callback' => 'google_analytics_counter_filter_google_analytics_counter_process',
+          //'tips callback' => '_filter_example_filter_time_tips',
+  );
   return $filters;
+}
+
+function google_analytics_counter_filter_google_analytics_counter_prepare($text, $filter) {
+  return $text;
+}
+
+function google_analytics_counter_filter_google_analytics_counter_process($text, $filter) {
+  $text = replace_google_analytics_counter_tags($text);
+  return $text;
 }
 
 /**
  * @todo Please document this function.
  * @see http://drupal.org/node/1354
  */
-function google_analytics_counter_filter_XXX($op, $delta = 0, $format = -1, $text = '') { }
+function google_analytics_counter_filter_XXX($op, $delta = 0, $format = -1, $text = '') {
+
+}
 
 function replace_google_analytics_counter_tags($str) {
   // [gac|path/to/page|debugon_or_debugoff]
@@ -635,8 +675,7 @@ function replace_google_analytics_counter_tags($str) {
     $google_analytics_counter_debug_override = strtolower(check_plain(@$match[2]));
     if ($google_analytics_counter_debug_override == 'debugon') {
       $GLOBALS['google_analytics_counter_debug_override'] = 1;
-    }
-    else if ($google_analytics_counter_debug_override == 'debugoff') {
+    } else if ($google_analytics_counter_debug_override == 'debugoff') {
       $GLOBALS['google_analytics_counter_debug_override'] = 0;
     }
 
