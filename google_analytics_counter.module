@@ -151,17 +151,14 @@ function google_analytics_counter_gac_get_count() {
   $json = array();
   if (!empty($sumarray)) {
     $json['#google-analytics-counter-' . md5($path)] = google_analytics_counter_construct_content($sumarray) . ' (AJAX)';
-    //$json['#google-analytics-counter'] = google_analytics_counter_construct_content($sumarray);
   }
   else {
     $json['#google-analytics-counter-' . md5($path)] = NULL;
-    //$json['#google-analytics-counter'] = NULL;
   }
 
   // Send JSON Back
   drupal_json_output($json);
   exit;
-  #return mt_rand(0,1000000);
 }
 
 /**
@@ -668,17 +665,6 @@ function google_analytics_counter_display($path = '') {
   $msec = $refreshinseconds * 1000;
 
   $block_content = '';
-
-  /*
-   $js_tooltip = '';
-   $tooltip = "this is tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip tooltip";
-   $js_tooltip .= <<<EOT
-   $("#gact").tooltip({ effect: 'slide'});
-   EOT;
-   drupal_add_js($js_tooltip, 'inline', 'footer');
-   $block_content .= '<a id="gact" href="/" title="'.$tooltip.'">*</a>';
-   */
-
   $block_content .= '<span id="google-analytics-counter-' . md5($path) . '">';
   //$block_content .= '<span id="google-analytics-counter">';
   $sumarray = google_analytics_counter_get_sum_per_path($path);
