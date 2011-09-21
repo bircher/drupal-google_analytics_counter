@@ -111,14 +111,13 @@ function google_analytics_counter_block_view($delta) {
 
     $block_content = google_analytics_counter_display();
 
-    $bname = t('Google Analytics Counter');
-    $block['subject'] = $bname;
-    $block['subject'] = $bname;
+    $block['subject'] = 'Google Analytics Counter';
     if ($block_content == '') {
       $block['content'] = t('N/A');
     } else {
       $block['content'] = $block_content;
     }
+    return $block;
   }
 }
 
@@ -227,8 +226,8 @@ function google_analytics_counter_get_sum_per_path($path) {
     $noconcurrency = TRUE;
   }
   $cachedvalue = '';
-  // Get from cache if not expired, or if we are forbidden to retrieve from Google (some other request takes place).
-  if ((($cache = cache_get($key)) AND !empty($cache->data) AND !$needfreshvalue) OR !$noconcurrency OR !$apirequestallowed) {
+  // Get from cache if not expired, if we don't need a fresh value, if there is concurrency, or if we exceeded Google's day quota.
+  if (($cache = cache_get($key) AND !empty($cache->data)) AND ((!$needfreshvalue OR !$noconcurrency OR !$apirequestallowed))) {
     $result = $cache->data;
     $cachedvalue = t(' This value was fetched from Drupal cache.');
   } else {
@@ -344,7 +343,7 @@ function google_analytics_counter_get_sum_per_path($path) {
       // Let's get the nid
       $nid = FALSE;
       $pathbits = explode('/', $path);
-      if ((@$pathbits[0] == 'node') && is_numeric($pathbits[1])) {
+      if ((@$pathbits[0] == 'node') && is_numeric(@$pathbits[1])) {
         // Provided in format node/x
         $nid = @$pathbits[1];
       } else {
@@ -411,6 +410,8 @@ function google_analytics_counter_get_sum_per_path($path) {
 
   $extrapolated_for_current_cache_period = 'N/A';
   // No reason to extrapolate if no data has been ever recorded (not a single date).
+  $addextrapolated = 0;
+  $views_per_second = 0;
   if ($result[1] <> 0) {
     $views_per_second = $result[0] / ($result[1] * 60 * 60 * 24);
     $extrapolated_for_current_cache_period = $lastfresh * $views_per_second;
@@ -549,7 +550,7 @@ function _google_analytics_counter_path_filter($node_path = NULL) {
 function _google_analytics_counter_path_aliases($node_path = NULL) {
   // Default path is the current path.
   if ($node_path == NULL) {
-    $node_path = $_GET['q'];
+    $node_path = check_plain($_GET['q']);
   }
 
   // Get the normal node path if it is a node.
@@ -595,12 +596,12 @@ function google_analytics_counter_construct_content($sumarray) {
   #$sum_of_pageviews .= $titlemsg;
   #$sum_of_pageviews .= '">';
 
-  $sum_of_pageviews .= $sumarray[0];
+  $sum_of_pageviews .= @$sumarray[0];
   #$sum_of_pageviews .= '</span>';
   //$countdays = $sumarray[1];
   //$cachedago = time()-$sumarray[2];
 
-  if ($sumarray[0] == 0 AND $debuggeron <> 1) {
+  if (@$sumarray[0] == 0 AND $debuggeron <> 1) {
     // If $sumarray[2] is zero, it means nothing was fetched (cache expired but there was concurrency and new data could not be retrieved). We will return nothing -- until new value can be retrieved.
     //$result = '***'.$countdays.'***';
     $result = '';
@@ -618,11 +619,10 @@ function google_analytics_counter_construct_content($sumarray) {
   return $result;
 }
 
-// Implementation of hook_filter().
 /**
  * Implements hook_filter_info().
  */
-function google_analytics_countery_filter_info() {
+function google_analytics_counter_filter_info() {
   $filters['filter_google_analytics_counter'] = array(
       'title' => t('Google Analytics Counter tag'),
       'description' => t('Substitutes a special Google Analytics Counter tag [gac|...] with the actual content.'),
@@ -632,11 +632,9 @@ function google_analytics_countery_filter_info() {
   );
   return $filters;
 }
-
 function google_analytics_counter_filter_google_analytics_counter_prepare($text, $filter) {
   return $text;
 }
-
 function google_analytics_counter_filter_google_analytics_counter_process($text, $filter) {
   $text = replace_google_analytics_counter_tags($text);
   return $text;
@@ -716,7 +714,7 @@ function google_analytics_counter_display($path = '') {
   // For that we need to run the AJAX call shorly after page loads up.
   // Only if this is not already an AJAX call!
   if (arg(0) <> 'google_analytics_counter' AND arg(1) <> 'gac_get_count') {
-    if ($sumarray[0] == 0) {
+    if (@$sumarray[0] == 0) {
       $retrytimeseconds = 7;
       $retrytime = $retrytimeseconds * 1000;
       $js_code .= <<<EOT
