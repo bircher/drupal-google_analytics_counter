@@ -712,7 +712,8 @@ function google_analytics_counter_display($path = '') {
   $js_code = '';
 
   // If the page is cached, then this makes a quick counter refresh shortly after loading the page.
-  // Or, if the initially calculated count is zero, it may either be a new page, or a retrieval mistake. Esp. for the latter, we want to retry, if only to hide the block from view.
+  // Or, if the initially calculated count is zero, it may either be a new page, or a retrieval mistake.
+  // Esp. for the latter, we want to retry, if only to hide the block from view.
   // For that we need to run the AJAX call shorly after page loads up.
   // Only if this is not already an AJAX call!
   if (arg(0) <> 'google_analytics_counter' AND arg(1) <> 'gac_get_count') {
