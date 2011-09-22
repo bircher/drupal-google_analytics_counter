@@ -676,7 +676,9 @@ function replace_google_analytics_counter_tags($str) {
       $GLOBALS['google_analytics_counter_debug_override'] = 0;
     }
 
-    // So now we can display the count based on the path. If no path was defined, the function will detect the current page's count.
+    /* So now we can display the count based on the path.
+     * If no path was defined, the function will detect the current page's count.
+     */
     $matchlink[] = google_analytics_counter_display($path);
   }
 
