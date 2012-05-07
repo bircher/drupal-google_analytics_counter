@@ -87,7 +87,7 @@ function google_analytics_counter_menu() {
  * @see http://drupal.org/node/1354
  */
 function google_analytics_counter_perms() {
-  drupal_goto('admin/user/permissions', array('fragment' => 'module-google_analytics_counter'));
+  drupal_goto('admin/people/permissions', array('fragment' => 'module-google_analytics_counter'));
 }
 
 /**
