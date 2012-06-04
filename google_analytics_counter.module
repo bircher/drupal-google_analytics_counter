@@ -153,6 +153,15 @@ function google_analytics_counter_gac_get_count() {
   $path = trim(substr($path, 1));
   $sumarray = google_analytics_counter_get_sum_per_path($path);
 
+  /**
+   * Show manner of retrieval in debug.
+   */
+  if (GOOGLE_ANALYTICS_COUNTER_DEBUG == 1) {
+    if (!empty($sumarray)) {
+      $sumarray[3] .= " Data retrieved using AJAX.";
+    }
+  }
+
   // Return Data
   $json = array();
   if (!empty($sumarray)) {
