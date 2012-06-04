@@ -727,8 +727,8 @@ function google_analytics_counter_display($path = '') {
       $retrytimeseconds = 7;
       $retrytime = $retrytimeseconds * 1000;
       $js_code .= <<<EOT
-$(document).ready(function(){
-setTimeout("gac_request_new_count()",$retrytime);
+jQuery(document).ready(function(){
+  setTimeout("gac_request_new_count()",$retrytime);
 });
 EOT;
     }
@@ -745,13 +745,13 @@ EOT;
   $filename = "google_analytics_counter/gac_get_count";
   $js_code .= <<<EOT
 function gac_request_new_count(){
-  $.getJSON(Drupal.settings.basePath + "$filename" + "/" + "$path", {nocache: "1"}, function(response) {
-    $.each(response, function(id, contents) {
+  jQuery.getJSON(Drupal.settings.basePath + "$filename" + "/" + "$path", {nocache: "1"}, function(response) {
+    jQuery.each(response, function(id, contents) {
       if (contents == '') {
-        $(id).parent().parent().parent().hide();
+        jQuery(id).parent().parent().parent().hide();
       }
       else {
-        $(id).html(contents);
+        jQuery(id).html(contents);
       }
     });
   });
