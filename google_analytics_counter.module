@@ -156,7 +156,7 @@ function google_analytics_counter_gac_get_count() {
   // Return Data
   $json = array();
   if (!empty($sumarray)) {
-    $json['#google-analytics-counter-' . md5($path)] = google_analytics_counter_construct_content($sumarray) . ' (AJAX)';
+    $json['#google-analytics-counter-' . md5($path)] = google_analytics_counter_construct_content($sumarray); # . ' (AJAX)';
   }
   else {
     $json['#google-analytics-counter-' . md5($path)] = NULL;
