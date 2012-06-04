@@ -29,7 +29,7 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#default_value' => variable_get('google_analytics_counter_api_dayquota', '10000'),
     '#size' => 9,
     '#maxlength' => 9,
-    '#description' => t('This is simply the daily limit of requests per website set by Google Analytics API. You don\'t need to change this value until Google relaxes their quota policy. Current value: 10000. It is reasonable to expect that Google will increase this low number sooner rather than later, so watch the <a href="http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota">quota</a> page for changes.'),
+    '#description' => t('This is simply the daily limit of requests per website set by Google Analytics API. You don\'t need to change this value until Google relaxes their quota policy. Current value: 10000. It is reasonable to expect that Google will increase this low number sooner rather than later, so watch the <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/#quota_policy">quota</a> page for changes.'),
   );
 
   $form['google_analytics_counter_concurrency'] = array(
