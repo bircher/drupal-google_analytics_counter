@@ -486,7 +486,7 @@ function _google_analytics_counter_path_report($request, $path = NULL, $group_by
       'refresh' => FALSE,
     );
     $new_data = google_analytics_api_report_data($request, $cachehere);
-    $new_data = array_values((array) $new_data->results); // Make an array from inside the object.
+    $data = array_values((array) $new_data->results); // Make an array from inside the object.
   }
   else {
     foreach (_google_analytics_counter_path_filter($path) as $filter) {
@@ -498,10 +498,10 @@ function _google_analytics_counter_path_report($request, $path = NULL, $group_by
       );
       $new_data = google_analytics_api_report_data($request, $cachehere);
       $new_data = array_values((array) $new_data->results); // Make an array from inside the object.
+      if (@$new_data) {
+        $data = array_merge($data, $new_data);
+      }
     }
-  }
-  if (@$new_data) {
-    $data = array_merge($data, $new_data);
   }
 
   return $data;
