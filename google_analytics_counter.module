@@ -239,12 +239,11 @@ function google_analytics_counter_get_sum_per_path($path) {
   }
   $cachedvalue = '';
   // Get from cache if not expired, if we don't need a fresh value, if there is concurrency, or if we exceeded Google's day quota.
-  $result = array();
   if (($cache = cache_get($key) AND !empty($cache->data)) AND ((!$needfreshvalue OR !$noconcurrency OR !$apirequestallowed))) {
     $result = $cache->data;
     $cachedvalue = t(' This value was fetched from Drupal cache.');
   }
-  elseif ($apirequestallowed) {
+  else {
 
     // Let's set a time variable indicating no other script should retrieve Google Analytics data within some period.
     variable_set('google_analytics_counter_latest', $timenow);
@@ -421,58 +420,54 @@ function google_analytics_counter_get_sum_per_path($path) {
     }
   }
 
-  if (!empty($result)) {
-    // We have a result, either cached or from a fresh API request.
+  $lastfresh = $timenow - $result[2];
 
-    $lastfresh = $timenow - $result[2];
+  $extrapolated_for_current_cache_period = 'N/A';
+  // No reason to extrapolate if no data has been ever recorded (not a single date).
+  $addextrapolated = 0;
+  $views_per_second = 0;
+  if ($result[1] <> 0) {
+    $views_per_second = $result[0] / ($result[1] * 60 * 60 * 24);
+    $extrapolated_for_current_cache_period = $lastfresh * $views_per_second;
 
-    $extrapolated_for_current_cache_period = 'N/A';
-    // No reason to extrapolate if no data has been ever recorded (not a single date).
+    // If extrapolation is desired, add it to the retrieved count.
     $addextrapolated = 0;
-    $views_per_second = 0;
+    if (variable_get('google_analytics_counter_extrapolation', 1) == 1) {
+      $addextrapolated = round($extrapolated_for_current_cache_period);
+      $result[0] += $addextrapolated;
+    }
+  }
+
+  // Add debug information, if requested.
+  $debuggeron = GOOGLE_ANALYTICS_COUNTER_DEBUG;
+  if ($debuggeron == 1) {
+    $debug = '';
+    //$debug .= '<span style="color:teal;">';
+    //$debug .= '<br/>';
+    $debug .= t('Debugging info: ');
+    $debug .= ($result[0] - $addextrapolated) . t(' views of /') . $path . t(' over ') . $result[1] . t(' days');
     if ($result[1] <> 0) {
-      $views_per_second = $result[0] / ($result[1] * 60 * 60 * 24);
-      $extrapolated_for_current_cache_period = $lastfresh * $views_per_second;
-
-      // If extrapolation is desired, add it to the retrieved count.
-      $addextrapolated = 0;
-      if (variable_get('google_analytics_counter_extrapolation', 1) == 1) {
-        $addextrapolated = round($extrapolated_for_current_cache_period);
-        $result[0] += $addextrapolated;
-      }
+      $debug .= t(' (about ') . round($result[0] / $result[1]) . t(' views per day since starting collecting statistics for this page on ') . date('Y-m-d', ($timenow - $result[1] * 60 * 60 * 24)) . ')';
     }
-
-    // Add debug information, if requested.
-    $debuggeron = GOOGLE_ANALYTICS_COUNTER_DEBUG;
-    if ($debuggeron == 1) {
-      $debug = '';
-      //$debug .= '<span style="color:teal;">';
-      //$debug .= '<br/>';
-      $debug .= t('Debugging info: ');
-      $debug .= ($result[0] - $addextrapolated) . t(' views of /') . $path . t(' over ') . $result[1] . t(' days');
-      if ($result[1] <> 0) {
-        $debug .= t(' (about ') . round($result[0] / $result[1]) . t(' views per day since starting collecting statistics for this page on ') . date('Y-m-d', ($timenow - $result[1] * 60 * 60 * 24)) . ')';
-      }
-      $debug .= t('. Fresh data for this page has been retrieved from Google Analytics API ') . $lastfresh . t(' seconds ago (next in ') . ($cache_period - ($timenow - $result[2])) . t(' seconds).');
-      $debug .= t(' With ') . ($views_per_second * $cache_period) . t(' views per caching period (') . $cache_period . t(' seconds), the estimated number of views for current part (') . $lastfresh . t(' seconds) of the caching period is ') . $extrapolated_for_current_cache_period . '.';
-      if ($noconcurrency) {
-        $debug .= t(' There is no problem with concurrency (');
-        $debug .= ($timenow - variable_get('google_analytics_counter_latest', $timenow)) . ' seconds';
-        $debug .= ' > ' . $concurrencymax . ').';
-      }
-      else {
-        $debug .= t(' There is a concurrency problem (');
-        $debug .= ($timenow - variable_get('google_analytics_counter_latest', $timenow)) . ' seconds';
-        $debug .= ' < ' . $concurrencymax . ')!';
-      }
-      $debug .= t(' Sum of API requests for the past 24 hours: ') . $dayquota[1] . t('. (The maximum is set to ') . $maxdailyrequests;
-      if (!$apirequestallowed) {
-        $debug .= t(', so no more API requests will be allowed until the end of the 24-hour period');
-      }
-      $debug .= '.)';
-      //$debug .= '</span>';
-      $result[3] = $debug;
+    $debug .= t('. Fresh data for this page has been retrieved from Google Analytics API ') . $lastfresh . t(' seconds ago (next in ') . ($cache_period - ($timenow - $result[2])) . t(' seconds).');
+    $debug .= t(' With ') . ($views_per_second * $cache_period) . t(' views per caching period (') . $cache_period . t(' seconds), the estimated number of views for current part (') . $lastfresh . t(' seconds) of the caching period is ') . $extrapolated_for_current_cache_period . '.';
+    if ($noconcurrency) {
+      $debug .= t(' There is no problem with concurrency (');
+      $debug .= ($timenow - variable_get('google_analytics_counter_latest', $timenow)) . ' seconds';
+      $debug .= ' > ' . $concurrencymax . ').';
     }
+    else {
+      $debug .= t(' There is a concurrency problem (');
+      $debug .= ($timenow - variable_get('google_analytics_counter_latest', $timenow)) . ' seconds';
+      $debug .= ' < ' . $concurrencymax . ')!';
+    }
+    $debug .= t(' Sum of API requests for the past 24 hours: ') . $dayquota[1] . t('. (The maximum is set to ') . $maxdailyrequests;
+    if (!$apirequestallowed) {
+      $debug .= t(', so no more API requests will be allowed until the end of the 24-hour period');
+    }
+    $debug .= '.)';
+    //$debug .= '</span>';
+    $result[3] = $debug;
   }
 
   return $result;
