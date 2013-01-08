@@ -726,28 +726,33 @@ function google_analytics_counter_display($path = '') {
   $block_content .= '<span id="google-analytics-counter-' . md5($path) . '">';
   //$block_content .= '<span id="google-analytics-counter">';
   $sumarray = google_analytics_counter_get_sum_per_path($path);
-  $block_content .= google_analytics_counter_construct_content($sumarray);
+  if (@$sumarray[0] == 0) {
+    $block_content .= 0;
+  }
+  else {
+    $block_content .= google_analytics_counter_construct_content($sumarray);
+  }
   $block_content .= '</span>';
 
   $js_code = '';
-
-  // If the page is cached, then this makes a quick counter refresh shortly after loading the page.
-  // Or, if the initially calculated count is zero, it may either be a new page, or a retrieval mistake.
-  // Esp. for the latter, we want to retry, if only to hide the block from view.
-  // For that we need to run the AJAX call shorly after page loads up.
-  // Only if this is not already an AJAX call!
-  if (arg(0) <> 'google_analytics_counter' AND arg(1) <> 'gac_get_count') {
+  /*
+    // If the page is cached, then this makes a quick counter refresh shortly after loading the page.
+    // Or, if the initially calculated count is zero, it may either be a new page, or a retrieval mistake.
+    // Esp. for the latter, we want to retry, if only to hide the block from view.
+    // For that we need to run the AJAX call shorly after page loads up.
+    // Only if this is not already an AJAX call!
+    if (arg(0) <> 'google_analytics_counter' AND arg(1) <> 'gac_get_count') {
     if (@$sumarray[0] == 0) {
-      $retrytimeseconds = 7;
-      $retrytime = $retrytimeseconds * 1000;
-      $js_code .= <<<EOT
-jQuery(document).ready(function(){
-  setTimeout("gac_request_new_count()",$retrytime);
-});
-EOT;
+    $retrytimeseconds = 7;
+    $retrytime = $retrytimeseconds * 1000;
+    $js_code .= <<<EOT
+    jQuery(document).ready(function(){
+    setTimeout("gac_request_new_count()",$retrytime);
+    });
+    EOT;
     }
-  }
-
+    }
+   */
   // If refresh is set to zero, then do not refresh at all.
   if ($msec <> 0) {
     $js_code .= <<<EOT
