@@ -1,5 +1,5 @@
 <?php
-
+ 
 define('GOOGLE_ANALYTICS_COUNTER_DEBUG', variable_get('google_analytics_counter_debug', ''));
 
 //require_once DRUPAL_ROOT . '/' .  'google_analytics_counter_settings.inc';

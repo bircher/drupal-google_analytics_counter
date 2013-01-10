@@ -1,6 +1,7 @@
-
 name = Google Analytics Counter
 description = Lightweight page view counter drawing on data collected by Google Analytics.
-dependencies[] = google_analytics_api
 package = Statistics
 core = 7.x
+
+dependencies[] = google_analytics_api
+;dependencies[] = libraries

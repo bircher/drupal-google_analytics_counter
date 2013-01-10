@@ -1,4 +1,3 @@
-
 Google Analytics Counter is a lightweight page view counter drawing on data collected by Google Analytics.
 
 Installation, demo and tips are all at http://vacilando.net/gac
