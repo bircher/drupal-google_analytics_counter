@@ -1,0 +1,82 @@
+<?php 
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Google Analytics Counter module.
+ */
+
+
+/**
+ * Implements hook_install().
+ *
+ * This hook is called when the user enables the module for the first time
+ * (or on subsequent enables after the module has been uninstalled).
+ */
+/*
+function google_analytics_counter_install() {
+  
+}
+*/
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function google_analytics_counter_uninstall() {
+  variable_del('google_analytics_counter_api_dayquota');
+  variable_del('google_analytics_counter_ajax_refresh');
+  variable_del('google_analytics_counter_dayquota');
+  variable_del('google_analytics_counter_latest');
+}
+
+
+/**
+ * Implements hook_schema().
+ * See http://drupal.org/node/146939
+ */
+function google_analytics_counter_schema() {
+  $schema['google_analytics_counter'] = array(
+    'description' => 'Google Analytics data storage.',
+    'fields' => array(
+      'pagepath_hash' => array(
+        'type' => 'varchar', 
+        'length' => 32, 
+        'description' => 'md5 hash of the relative page path.',
+        'not null' => TRUE,
+        ),
+      'pagepath' => array(
+        'type' => 'varchar', // varchar faster than text on MySQL (not creating temp table on disk); see http://drupal.org/node/146939#comment-2281846
+        'length' => 2048, // see http://stackoverflow.com/a/417184/269383
+        'description' => 'Relative page path, e.g. "node/1" or "contact", as stored by GA.',
+        'not null' => TRUE,
+        ),
+      'pageviews' => array(
+        'type' => 'int',
+        'size' => 'big', // big int unsigned: 8 B (18446744073709551615)
+        'description' => 'Pageview count.',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+        ),
+      ),
+    'primary key' => array('pagepath_hash'),
+    'indexes' => array(
+      'pagepath' => array(array('pagepath', 20)),
+      'pageviews' => array('pageviews'),
+      ),
+    );
+  
+  return $schema;
+}
+
+
+/**
+* Add the google_analytics_counter table for the Google Analytics Counter module.
+*/
+function google_analytics_counter_update_7201() {
+  if (!db_table_exists('google_analytics_counter')) {
+    $schema = google_analytics_counter_schema();
+    db_create_table('google_analytics_counter', $schema['google_analytics_counter']);
+    return st('Add the google_analytics_counter table for the Google Analytics Counter module.');
+  }
+}
