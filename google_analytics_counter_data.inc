@@ -207,7 +207,7 @@ function google_analytics_counter_get_sum_per_path($path) {
   $cacheid = md5($path);
   if ($cache = cache_get('google_analytics_counter_page_'.$cacheid)) {
     $sum_of_pageviews = $cache->data;
-    dpm('CACHED');
+    //dpm('CACHED');
   }
   else {
     // Do your expensive calculations here, and populate $my_data
@@ -269,7 +269,7 @@ function google_analytics_counter_get_sum_per_path($path) {
     }
 
     cache_set('google_analytics_counter_page_'.$cacheid, $sum_of_pageviews, 'cache', CACHE_TEMPORARY);
-    dpm('UNCACHED');
+    //dpm('UNCACHED');
   }
 
   //dpm($sum_of_pageviews);
