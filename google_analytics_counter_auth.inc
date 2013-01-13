@@ -162,7 +162,6 @@ function google_analytics_counter_auth_admin_submit($form, &$form_state) {
       break;
     case t('Save settings'):
         variable_set('google_analytics_counter_profile_id', $form_state['values']['google_analytics_counter_profile_id']);
-        variable_set('google_analytics_counter_cache_length', $form_state['values']['google_analytics_counter_cache_length']);
         drupal_set_message(t('Settings have been saved successfully.'));
       break;
     case t('Revoke access token'):
@@ -239,5 +238,4 @@ function google_analytics_counter_revoke() {
   variable_del('google_analytics_counter_consumer_secret');
   variable_del('google_analytics_counter_oauth_token');
   variable_del('google_analytics_counter_oauth_token_secret');
-  variable_del('google_analytics_counter_cache_length');
 }

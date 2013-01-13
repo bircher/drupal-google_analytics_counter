@@ -284,26 +284,28 @@ function google_analytics_counter_details(){
 
   $result .= '<p><h3>More information relevant to Google Analytics statistics for this site:</h3>';
 
-  $result .= '<p>Number of paths on this site as currently recorded by Google Analytics: ' . variable_get('google_analytics_counter_totalhits', 0) . '. This is cumulative; paths that may no longer exist on the website still have historical traces in Google Analytics.';
+  $result .= '<p>Number of paths on this site as currently recorded by Google Analytics: ' . number_format(variable_get('google_analytics_counter_totalhits', 0)) . '. This is cumulative; paths that may no longer exist on the website still have historical traces in Google Analytics.';
 
   $dbresult = db_select('google_analytics_counter', 'gac')
   ->fields('gac')
   ->execute();
   $num_of_results = $dbresult->rowCount();
-  $result .= '<br />Number of paths currently stored in local database table: ' . $num_of_results . '. This table is initially built and then regularly updated during cron runs.';
+  $result .= '<p>Number of paths currently stored in local database table: ' . number_format($num_of_results) . '. This table is initially built and then regularly updated during cron runs.';
+
+  $result .= '<br />The most recent retrieval of ' . number_format(variable_get('google_analytics_counter_chunk_to_fetch', 1000)) . ' paths from Google Analytics took ' . number_format(variable_get('google_analytics_counter_chunk_process_time', 'UNKNOWN')) . ' seconds.';
 
   $dbresult = db_select('node_counter', 'nc')
   ->fields('nc')
   ->execute();
   $num_of_results = $dbresult->rowCount();
-  $result .= '<br />Number of nodes with known pageview counts on this site: ' . $num_of_results . '. Pageviews are updated the first time the node is accessed.';
+  $result .= '<p>Number of nodes with known pageview counts on this site: ' . number_format($num_of_results) . '. Pageviews are updated the first time the node is accessed.';
 
   $apicalls = variable_get('google_analytics_counter_dayquota', array(0, 0));
   $remainingcalls = variable_get('google_analytics_counter_api_dayquota', 10000)-$apicalls[1];
   if ($remainingcalls < 1) $remainingcalls = '0';
-  $result .= '<p>Number of requests made to Google Analytics: ' . $apicalls[1] . '. Only calls made by this module are counted here. Other modules and apps may be making more requests.';
-  $result .= 'Remaining requests available in the current 24-hour period: ' . $remainingcalls . '.';
-  $result .= 'The current 24-hour period ends in: ' . ceil((REQUEST_TIME-$apicalls[0])/60) . ' minutes.';
+  $result .= '<p>Number of requests made to Google Analytics: ' . number_format($apicalls[1]) . '. Only calls made by this module are counted here. Other modules and apps may be making more requests. ';
+  $result .= 'Remaining requests available in the current 24-hour period: ' . number_format($remainingcalls) . '. ';
+  $result .= 'The current 24-hour period ends in: ' . number_format(ceil((REQUEST_TIME-$apicalls[0])/60)) . ' minutes.';
   
   return $result;
 }

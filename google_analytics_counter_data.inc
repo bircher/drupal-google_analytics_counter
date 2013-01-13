@@ -4,19 +4,16 @@
  * Find how many distinct paths does Google Analytics have for this profile. This function is triggered by hook_cron().
  */
 function google_analytics_counter_update_path_counts(){
-  /*
-  $gapi->requestReportData($contact_center['report_id'], array('customVarValue1'), array('pageviews'), array('-pageviews'), NULL, $start_date, $end_date, 1, 1);    
-  $count = $gapi->getTotalResults();
-  $loops = ceil(($count/$max_results));
-  */
+
+  // Record how long did this chunk take to process.
+  $chunkprocessbegin = time();
 
   // Needing to stay under the Google Analytics API quota, let's count how many API retrievals were made in the last 24 hours.
   // @todo We should better take into consideration that the quota is reset at midnight PST (note: time() always returns UTC).
-  $timenow = REQUEST_TIME;
   $dayquota = variable_get('google_analytics_counter_dayquota', array(0, 0));
-  if ($timenow - $dayquota[0] >= 86400) {
+  if (REQUEST_TIME - $dayquota[0] >= 86400) {
     // If last API request was more than a day ago, set monitoring time to now.
-    $dayquota[0] = $timenow;
+    $dayquota[0] = REQUEST_TIME;
     $dayquota[1] = 0;
     variable_set('google_analytics_counter_dayquota', array($dayquota[0], $dayquota[1]));
   }
@@ -25,7 +22,7 @@ function google_analytics_counter_update_path_counts(){
   $maxdailyrequests = variable_get('google_analytics_counter_api_dayquota', 10000); // see http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
   if ($dayquota[1] > $maxdailyrequests) {
     //dpm('limit hit!');
-    watchdog('Google Analytics Counter', 'Google Analytics API quota of '.$maxdailyrequests.' requests has been reached. Will NOT fetch data from Google Analytics for the next '.($dayquota[0]+86400-$timenow).' seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', NULL, WATCHDOG_ERROR);
+    watchdog('Google Analytics Counter', 'Google Analytics API quota of '.$maxdailyrequests.' requests has been reached. Will NOT fetch data from Google Analytics for the next '.($dayquota[0]+86400-REQUEST_TIME).' seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', NULL, WATCHDOG_ERROR);
     return;
   }
 
@@ -106,6 +103,9 @@ function google_analytics_counter_update_path_counts(){
   }
   //dpm('newstep: '.$newstep);
   variable_set('google_analytics_counter_data_step', $newstep);
+
+  // Record how long did this chunk take to process.
+  variable_set('google_analytics_counter_chunk_process_time', time()-$chunkprocessbegin);
 
 }
 

@@ -6,7 +6,7 @@
 function google_analytics_counter_admin($form, &$form_state) {
 
   $defaultcroninterval = 60;
-  $chunk = 1000;
+  $chunk = 1000; // Could be up to 10000 but keeping the default low so that it works even for people without external cron.
   $dayquota = 10000;
 
   $times = array();
