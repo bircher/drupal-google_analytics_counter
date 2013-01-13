@@ -158,7 +158,7 @@ function google_analytics_counter_auth_admin_submit($form, &$form_state) {
 
         /* Step #2 of OAuth */
         $GAFeed->obtainAuthorization($token);
-        dpm($GAFeed);
+        //dpm($GAFeed);
       break;
     case t('Save settings'):
         variable_set('google_analytics_counter_profile_id', $form_state['values']['google_analytics_counter_profile_id']);

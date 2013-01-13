@@ -210,7 +210,7 @@ function google_analytics_counter_display($path = '') {
 
   if ($path == '') {
     $path = check_plain($_GET['q']);
-    dpm($path);
+    //dpm($path);
   }
 
   $block_content = '';
