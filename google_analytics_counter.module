@@ -26,15 +26,18 @@ function google_analytics_counter_permission() {
 
 /**
  * Display help and module information
+ * Implements hook_help().
  * @param path which path of the site we're displaying help
  * @param arg array that holds the current path as would be returned from arg() function
  * @return help text for the path
  */
 function google_analytics_counter_help($path, $arg) {
-  // The line above outputs in ALL admin/module pages
-  switch ($path) {
-    case "admin/help/google_analytics_counter":
-    return '<p>' . t("Page view counter drawing on data collected by Google Analytics.") . '</p>';
+  if ($path == 'admin/help#google_analytics_counter') {
+    //admin/modules#description
+    //admin/help/google_analytics_counter
+    // '<p>' . t("Page view counter drawing on data collected by Google Analytics.") . '</p>';
+    $output = file_get_contents(drupal_get_path('module', 'google_analytics_counter') . '/README.txt');
+    return nl2br($output);
   }
 }
 
@@ -136,7 +139,7 @@ function google_analytics_counter_block_view($delta) {
   $block['subject'] = 'Google Analytics Counter';
   if ($block_content == '') { 
     // If unknown, for some reason.
-    $block['content'] = t('N/A');
+    $block['content'] = 0; // Instead of t('N/A'). Suppose better to use 0 because it's true, that path has been recorded zero times by GA. Path may not exist or be private or too new.
   }
   else {
     $block['content'] = $block_content;
@@ -170,11 +173,10 @@ function google_analytics_counter_filter_google_analytics_counter_process($text,
 }
 
 function replace_google_analytics_counter_tags($str) {
-  // [gac|path/to/page|debugon_or_debugoff]
+  // [gac|path/to/page]
 
   $matchlink = '';
   $orig_match = '';
-  //preg_match_all("/(\[)gac(\|)[^\]]*(\])/s", $str, $matches);
   $matches = '';
   preg_match_all("/(\[)gac[^\]]*(\])/s", $str, $matches);
 
@@ -207,16 +209,17 @@ function replace_google_analytics_counter_tags($str) {
 function google_analytics_counter_display($path = '') {
 
   if ($path == '') {
-    //$path = check_plain(implode('/', arg()));
     $path = check_plain($_GET['q']);
+    dpm($path);
   }
 
   $block_content = '';
-  $block_content .= '<span id="google-analytics-counter-' . md5($path) . '">';
+  //$block_content .= '<span id="google-analytics-counter-' . md5($path) . '">';
+  $block_content .= '<span class="google-analytics-counter">';
   $count = google_analytics_counter_get_sum_per_path($path);
   if ($count == '') { 
     // If unknown, for some reason.
-    $block_content .= t('N/A');
+    $block_content .= 0; // Better than t('N/A').
   }
   else {
     $block_content .= $count;
