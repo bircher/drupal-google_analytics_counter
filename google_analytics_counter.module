@@ -289,7 +289,9 @@ function google_analytics_counter_details(){
 
   $result .= '<p><h3>More information relevant to Google Analytics statistics for this site:</h3>';
 
-  $result .= '<p>Number of paths on this site as currently recorded by Google Analytics: ' . number_format(variable_get('google_analytics_counter_totalhits', 0)) . '. This is cumulative; paths that may no longer exist on the website still have historical traces in Google Analytics.';
+  $result .= '<p>Total number of hits registered by Google Analytics under this profile: ' . number_format(variable_get('google_analytics_counter_totalhits', 0)) . '. This is cumulative; counts for paths that may no longer exist on the website still have historical traces in Google Analytics.';
+
+  $result .= '<p>Number of paths on this site as currently recorded by Google Analytics: ' . number_format(variable_get('google_analytics_counter_totalpaths', 0)) . '. This is cumulative; paths that may no longer exist on the website still have historical traces in Google Analytics.';
 
   $dbresult = db_select('google_analytics_counter', 'gac')
   ->fields('gac')

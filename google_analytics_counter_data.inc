@@ -78,6 +78,8 @@ function google_analytics_counter_update_path_counts(){
   
   // The total number of records for this profile.
   $resultcount = $new_data->results->totalResults;
+  // Store it in a variable.
+  variable_set('google_analytics_counter_totalpaths', $resultcount);
 
   // The total number of hits for all records for this profile.
   $totalhits = $new_data->results->totalsForAllResults['pageviews']; 
