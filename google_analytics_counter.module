@@ -13,10 +13,12 @@ module_load_include('inc', 'google_analytics_counter', 'google_analytics_counter
  */
 function google_analytics_counter_permission() {
   return array(
+    /* Perhaps for later:
     'access google analytics counter' => array(
       'title' => t('Access Google Analytics Counter'),
       'description' => t('Set roles that may access the output of Google Analytics Counter.'),
       ),
+    */
     'administer google analytics counter' => array(
       'title' => t('Administer Google Analytics Counter'),
       'description' => t('Set roles that may access the settings of Google Analytics Counter.'),

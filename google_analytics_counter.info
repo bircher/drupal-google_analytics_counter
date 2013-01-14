@@ -3,7 +3,7 @@ description = "Lightweight page view counter drawing on data collected by Google
 package = Statistics
 core = 7.x
 
-dependencies[] = google_analytics
+dependencies[] = googleanalytics
 dependencies[] = oauth_common
 dependencies[] = statistics
 
