@@ -23,17 +23,25 @@ function google_analytics_counter_install() {
  * Implements hook_uninstall().
  */
 function google_analytics_counter_uninstall() {
-  variable_del('google_analytics_counter_ajax_refresh');
   variable_del('google_analytics_counter_api_dayquota');
   variable_del('google_analytics_counter_cache_length');
+  variable_del('google_analytics_counter_chunk_node_process_time');
+  variable_del('google_analytics_counter_chunk_process_time');
+  variable_del('google_analytics_counter_chunk_to_fetch');
+  variable_del('google_analytics_counter_cron_interval');
+  variable_del('google_analytics_counter_cron_next_execution');
+  variable_del('google_analytics_counter_cron_next_execution_node_counter');
+  variable_del('google_analytics_counter_data_step');
   variable_del('google_analytics_counter_dayquota');
-  variable_del('google_analytics_counter_latest');
-
-  variable_del('google_analytics_counter_profile_id');
-  variable_del('google_analytics_counter_consumer_key');
-  variable_del('google_analytics_counter_consumer_secret');
+  variable_del('google_analytics_counter_default_page');
+  variable_del('google_analytics_counter_hd');
+  variable_del('google_analytics_counter_node_data_step');
   variable_del('google_analytics_counter_oauth_token');
   variable_del('google_analytics_counter_oauth_token_secret');
+  variable_del('google_analytics_counter_profile_id');
+  variable_del('google_analytics_counter_totalhits');
+  variable_del('google_analytics_counter_totalnodes');
+  variable_del('google_analytics_counter_totalpaths');
 }
 
 
@@ -72,8 +80,8 @@ function google_analytics_counter_schema() {
       'pageviews' => array('pageviews'),
       ),
     );
-  
-  return $schema;
+
+return $schema;
 }
 
 
@@ -124,7 +132,7 @@ function google_analytics_counter_requirements($phase) {
       $requirements['google_analytics_counter_authentication']['severity'] = REQUIREMENT_ERROR;
       $requirements['google_analytics_counter_authentication']['value'] = $t('No Google Analytics profile has been authenticated!');
     }
- 
+
     $corestats = variable_get('statistics_count_content_views');
     // Core statistics module counter must be switched off
     if ($corestats == 1){ 

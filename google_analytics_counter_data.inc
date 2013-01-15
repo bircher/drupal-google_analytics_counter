@@ -52,12 +52,15 @@ function google_analytics_counter_update_path_counts(){
   $resultcount = FALSE;
   $cachehere = array(
     'cid' => 'google_analytics_counter_' . md5(serialize($request)),
-      'expire' => google_analytics_counter_cache_time(),
+    'expire' => google_analytics_counter_cache_time(),
       'refresh' => FALSE, //@todo
       );
   $new_data = @google_analytics_counter_report_data($request, $cachehere);
+  //dpm($new_data);return;exit();
   if(!empty($new_data->error)){ // If NULL then there is no error.
-    watchdog('Google Analytics Counter', 'Problem fetching data from Google Analytics: ' . $new_data->error, NULL, WATCHDOG_ERROR);
+    watchdog('Google Analytics Counter', 'Problem fetching data from Google Analytics: ' . $new_data->error . ' Did you authenticate any Google Analytics profille? See <a href="/admin/config/system/google_analytics_counter/authentication">here</a>.', NULL, WATCHDOG_ERROR);
+    // Nothing to do; return.
+    //return;
   }
   else {
     $resultsretrieved = $new_data->results->rows;
@@ -77,12 +80,12 @@ function google_analytics_counter_update_path_counts(){
   //dpm($new_data);
   
   // The total number of records for this profile.
-  $resultcount = $new_data->results->totalResults;
+  $resultcount = @$new_data->results->totalResults;
   // Store it in a variable.
   variable_set('google_analytics_counter_totalpaths', $resultcount);
 
   // The total number of hits for all records for this profile.
-  $totalhits = $new_data->results->totalsForAllResults['pageviews']; 
+  $totalhits = @$new_data->results->totalsForAllResults['pageviews']; 
   variable_set('google_analytics_counter_totalhits', $totalhits);
   //dpm('totalhits: '.$totalhits);
 
@@ -93,7 +96,7 @@ function google_analytics_counter_update_path_counts(){
   variable_set('google_analytics_counter_dayquota', array($dayquota[0], ($dayquota[1]+1)));
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog('Google Analytics Counter', 'Retrieved '.sizeof($new_data->results->rows).' items from Google Analytics data for paths '.($pointer-$chunk).'-'.($pointer-$chunk-1+sizeof($new_data->results->rows)).'.', NULL, WATCHDOG_INFO);
+  watchdog('Google Analytics Counter', 'Retrieved '.sizeof(@$new_data->results->rows).' items from Google Analytics data for paths '.($pointer-$chunk).'-'.($pointer-$chunk-1+sizeof(@$new_data->results->rows)).'.', NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
   if ($pointer < $resultcount){
@@ -114,7 +117,7 @@ function google_analytics_counter_update_path_counts(){
 /**
  * Calculate pageviews for one path (with any aliases).
  */
-function google_analytics_counter_get_sum_per_path($path) {
+function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
 
   // Recognize special path 'all' to get the sum of all pageviews for the profile.
   if ($path == 'all') {
@@ -123,7 +126,7 @@ function google_analytics_counter_get_sum_per_path($path) {
   }
 
   $cacheid = md5($path);
-  if ($cache = cache_get('google_analytics_counter_page_'.$cacheid)) {
+  if ($cache = cache_get('google_analytics_counter_page_'.$cacheid) AND $cacheon) {
     $sum_of_pageviews = $cache->data;
     //dpm('CACHED');
   }
@@ -156,36 +159,6 @@ function google_analytics_counter_get_sum_per_path($path) {
       $sum_of_pageviews += $pathcount->pageviews;
     }
     //dpm($sum_of_pageviews);
-
-    // Get the normal node path if it is a node.
-    $node_path = drupal_get_normal_path($path);
-    // Let's get the nid
-    $nid = FALSE;
-    $pathbits = explode('/', $node_path);
-    if (sizeof($pathbits) == 2){
-      if ((@$pathbits[0] == 'node') && is_numeric(@$pathbits[1])) {
-    // OK, it's in format node/x
-        $nid = @$pathbits[1];
-        //dpm('ok it is a node '.$node_path.' with nid: '.$nid);
-      }
-    }
-    //dpm($path);
-    //dpm($node_path);
-    //dpm($pathbits);
-    if ($nid !== FALSE AND $sum_of_pageviews <> 0) {
-    // This is a node, so update the node's counters.
-    // We don't do anything with daycount here
-    // Or we must create a new row to store counters for the new node.
-    // http://drupal.org/node/310085
-      db_merge('node_counter')
-      ->key(array('nid' => $nid))
-      ->fields(array(
-        'daycount' => 0,
-        'totalcount' => $sum_of_pageviews,
-        'timestamp' => REQUEST_TIME,
-        ))
-      ->execute();
-    }
 
     cache_set('google_analytics_counter_page_'.$cacheid, $sum_of_pageviews, 'cache', CACHE_TEMPORARY);
     //dpm('UNCACHED');
@@ -245,7 +218,7 @@ function google_analytics_counter_report_data($params = array(), $cache_options 
 
   $params_defaults = array(
     'profile_id' => 'ga:' . variable_get('google_analytics_counter_profile_id', 0),
-  );
+    );
 
   $params += $params_defaults;
 
@@ -253,4 +226,87 @@ function google_analytics_counter_report_data($params = array(), $cache_options 
   $GAFeed->queryReportFeed($params, $cache_options);
 
   return $GAFeed;
+}
+
+
+/**
+ * Get pageviews for nodes and write them to Drupal core table node_counter. This function is triggered by hook_cron().
+ */
+function google_analytics_counter_update_node_counter(){
+
+  // Record how long did this chunk take to process.
+  $chunkprocessbegin = time();
+
+  // The total number of nodes.
+  $dbresult = db_select('node', 'n')
+  ->fields('n')
+  ->execute();
+  $resultcount = $dbresult->rowCount();
+  //dpm('totalnodes: '.$resultcount);
+  // Store it in a variable.
+  variable_set('google_analytics_counter_totalnodes', $resultcount);
+
+  // How many node counts to update one cron run. 
+  $chunk = variable_get('google_analytics_counter_chunk_to_fetch', 1000);
+  //$chunk = 2; // JUST TESTING! @todo
+  // In case there are more than $chunk nodes to process, do just one chunk at a time and register that in $step.
+  $step = variable_get('google_analytics_counter_node_data_step', 0);
+  // Which node to look for first. Must be between 0 - infinity.
+  $pointer = $step*$chunk; 
+  //dpm('START chunk '.$chunk);
+  //dpm('START step '.$step);
+  //dpm('START pointer '.$pointer);
+
+  $dbresults = db_select('node', 'n')
+  ->fields('n', array('nid'))
+  //->condition('pagepath', 'node/%', 'LIKE')
+  ->range($pointer, 2)
+  ->execute();
+  foreach($dbresults as $dbresult){
+    //dpm($dbresult);
+
+    $path = 'node/'.$dbresult->nid;
+
+    // Get the count for this node (uncached)
+    $sum_of_pageviews = google_analytics_counter_get_sum_per_path($path, FALSE);
+    //dpm($path.' ... '.$sum_of_pageviews);
+
+    // Don't write zeroes.
+    if ($sum_of_pageviews == 0) continue;
+
+    // Write the count to Drupal core table node_counter
+    db_merge('node_counter')
+    ->key(array('nid' => $dbresult->nid))
+    ->fields(array(
+      'daycount' => 0,
+      'totalcount' => $sum_of_pageviews,
+      'timestamp' => REQUEST_TIME,
+      ))
+    ->execute();
+
+  }
+
+  // Set the pointer.
+  $pointer += $chunk;
+  //dpm('END pointer: '.$pointer);
+
+  //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
+  watchdog('Google Analytics Counter', 'Attempted updating '. $dbresults->rowCount() .' records in node_counter from Google Analytics data ' . ($pointer-$chunk) . '-'.($pointer-$chunk+$dbresults->rowCount()).'.', NULL, WATCHDOG_INFO);
+
+  // OK now increase or zero $step
+  if ($pointer < $resultcount){
+    // If there are more results than what we've reached with this chunk, increase step to look further during the next run.
+    $newstep = $step+1;
+    //dpm('step +1: '.$newstep);
+  }
+  else {
+    $newstep = 0;
+    //dpm('step zero: '.$newstep);
+  }
+  //dpm('newstep: '.$newstep);
+  variable_set('google_analytics_counter_node_data_step', $newstep);
+
+  // Record how long did this chunk take to process.
+  variable_set('google_analytics_counter_chunk_node_process_time', time()-$chunkprocessbegin);
+
 }
