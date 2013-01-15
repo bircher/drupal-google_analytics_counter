@@ -278,15 +278,13 @@ function google_analytics_counter_cron() {
   if (REQUEST_TIME >= variable_get('google_analytics_counter_cron_next_execution', 0)) {
     google_analytics_counter_update_path_counts();
     variable_set('google_analytics_counter_cron_next_execution', REQUEST_TIME + $interval);
-    watchdog('Google Analytics Counter', 'pathcron'); // TEMP REMOVE @todo
-    //dpm('pathcron'); // TEMP REMOVE @todo
+    //watchdog('Google Analytics Counter', 'pathcron'); // TEMP REMOVE @todo
   }
   else {
     // If not fetching data from GA, update the node_counter table.
     google_analytics_counter_update_node_counter();
     variable_set('google_analytics_counter_cron_next_execution_node_counter', REQUEST_TIME + $interval);
-    watchdog('Google Analytics Counter', 'nodecron'); // TEMP REMOVE @todo
-    //dpm('nodecron'); // TEMP REMOVE @todo
+    //watchdog('Google Analytics Counter', 'nodecron'); // TEMP REMOVE @todo
   }
 }
 

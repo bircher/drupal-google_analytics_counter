@@ -247,6 +247,7 @@ function google_analytics_counter_update_node_counter(){
   variable_set('google_analytics_counter_totalnodes', $resultcount);
 
   // How many node counts to update one cron run. 
+  // We use the same chunk size as when getting paths in google_analytics_counter_update_path_counts().
   $chunk = variable_get('google_analytics_counter_chunk_to_fetch', 1000);
   //$chunk = 2; // JUST TESTING! @todo
   // In case there are more than $chunk nodes to process, do just one chunk at a time and register that in $step.
@@ -260,7 +261,7 @@ function google_analytics_counter_update_node_counter(){
   $dbresults = db_select('node', 'n')
   ->fields('n', array('nid'))
   //->condition('pagepath', 'node/%', 'LIKE')
-  ->range($pointer, 2)
+  ->range($pointer, $chunk)
   ->execute();
   foreach($dbresults as $dbresult){
     //dpm($dbresult);
