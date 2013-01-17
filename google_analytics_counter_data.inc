@@ -111,7 +111,7 @@ function google_analytics_counter_update_path_counts(){
 
   // Record how long did this chunk take to process.
   variable_set('google_analytics_counter_chunk_process_time', time()-$chunkprocessbegin);
-4
+
 }
 
 /**
