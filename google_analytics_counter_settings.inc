@@ -18,7 +18,7 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#type' => 'select',
     '#title' => t('Minimum time between Google Analytics data fetching'),
     '#default_value' => variable_get('google_analytics_counter_cron_interval', $defaultcroninterval),
-    '#description' => t('Google Analytics statistical data is fetched via cron. If your cron runs too frequently, you may waste your GA daily quota too fast. Set here the minimum time that needs to elapse before the Google Analytics Counter cron runs (even if your cronjob runs more frequently). Specify the time in <em>minutes</em>. Default: '.$defaultcroninterval.' minutes.'),
+    '#description' => t('Google Analytics statistical data is fetched and processed via a cron job. If your cron runs too frequently, you may waste your GA daily quota too fast. Set here the minimum time that needs to elapse before the Google Analytics Counter cron runs (even if your cron job runs more frequently). Specify the time in <em>minutes</em>. Default: '.$defaultcroninterval.' minutes.'),
     '#options' => drupal_map_assoc($times),
     '#required' => TRUE,
     );

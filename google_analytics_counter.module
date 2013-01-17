@@ -56,22 +56,20 @@ function google_analytics_counter_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('google_analytics_counter_admin'),
     'access arguments' => array('administer google analytics counter'),
-    'type' => MENU_NORMAL_ITEM,
-    'weight' => 10,
-    );
-
-  $items['admin/config/system/google_analytics_counter/settings'] = array(
-    'title' => 'Settings',
-    'description' => 'General settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('google_analytics_counter_admin'),
-    'access arguments' => array('administer google analytics counter'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    //'type' => MENU_NORMAL_ITEM,  // Not necessary since this is the default.
     'weight' => 0,
     );
 
-  $items['admin/config/system/google_analytics_counter/details'] = array(
-    'title' => 'Details',
+  // For the default local task, we need very little configuration, as the callback and other conditions are handled by the parent callback.
+  $items['admin/config/system/google_analytics_counter/settings'] = array(
+    'title' => 'Settings',
+    //'description' => 'General settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 1,
+    );
+
+  $items['admin/config/system/google_analytics_counter/dashboard'] = array(
+    'title' => 'Dashboard',
     'description' => 'More information relevant to Google Analytics statistics for this site.',
     'page callback' => 'google_analytics_counter_details',
     'access arguments' => array('administer google analytics counter'),
@@ -211,9 +209,11 @@ function replace_google_analytics_counter_tags($str) {
 function google_analytics_counter_display($path = '') {
 
   if ($path == '') {
-    $path = check_plain($_GET['q']);
+    $path = $_GET['q'];
     //dpm($path);
   }
+  // Check all paths, to be sure.
+  $path = check_plain($path); 
 
   $block_content = '';
   //$block_content .= '<span id="google-analytics-counter-' . md5($path) . '">';
@@ -279,11 +279,13 @@ function google_analytics_counter_cron() {
     google_analytics_counter_update_path_counts();
     variable_set('google_analytics_counter_cron_next_execution', REQUEST_TIME + $interval);
     //watchdog('Google Analytics Counter', 'pathcron'); // TEMP REMOVE @todo
+/*
   }
   else {
     // If not fetching data from GA, update the node_counter table.
+    */
     google_analytics_counter_update_node_counter();
-    variable_set('google_analytics_counter_cron_next_execution_node_counter', REQUEST_TIME + $interval);
+//    variable_set('google_analytics_counter_cron_next_execution_node_counter', REQUEST_TIME + $interval);
     //watchdog('Google Analytics Counter', 'nodecron'); // TEMP REMOVE @todo
   }
 }
