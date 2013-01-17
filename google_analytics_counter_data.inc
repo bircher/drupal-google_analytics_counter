@@ -292,7 +292,7 @@ function google_analytics_counter_update_node_counter(){
   //dpm('END pointer: '.$pointer);
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog('Google Analytics Counter', 'Attempted updating '. $dbresults->rowCount() .' records in node_counter from Google Analytics data ' . ($pointer-$chunk) . '-'.($pointer-$chunk+$dbresults->rowCount()).'.', NULL, WATCHDOG_INFO);
+  watchdog('Google Analytics Counter', 'Attempted updating '. $dbresults->rowCount() .' records in node_counter from Google Analytics data ' . ($pointer-$chunk+1) . '-'.($pointer-$chunk+$dbresults->rowCount()).'.', NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
   if ($pointer < $resultcount){
