@@ -275,11 +275,19 @@ function google_analytics_counter_cron() {
   $interval = 60*variable_get('google_analytics_counter_cron_interval', 60); // $interval must contain value in seconds.
   // We don't want to act every time cron runs (which could be every minute) so keep a time for the next run in a variable.
   if (REQUEST_TIME >= variable_get('google_analytics_counter_cron_next_execution', 0)) {
-    variable_set('google_analytics_counter_cron_next_execution', REQUEST_TIME + $interval); // Important to set it before the job because if they take long and there is another cron triggered...
+
+    // Important to set it before the job because if they take long and there is another cron triggered...
+    variable_set('google_analytics_counter_cron_next_execution', REQUEST_TIME + $interval); 
+
+    // Retrieve path with counts from Google Analytics into a local table.
     google_analytics_counter_update_path_counts();
+    // Now also update the node_counter table from the local table with the GA data.
+    google_analytics_counter_update_node_counter(); 
     //watchdog('Google Analytics Counter', 'pathandnodecron'); // TEMP REMOVE @todo
   }
+  //else {
   //watchdog('Google Analytics Counter', 'nocron'); // TEMP REMOVE @todo
+  //}
 }
 
 /**
