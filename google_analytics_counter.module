@@ -271,23 +271,15 @@ function google_analytics_counter_cron() {
     return;
   }
 
-
   // Defaults to an hourly interval. Of course, cron has to be running at least hourly for this to work.
   $interval = 60*variable_get('google_analytics_counter_cron_interval', 60); // $interval must contain value in seconds.
   // We don't want to act every time cron runs (which could be every minute) so keep a time for the next run in a variable.
   if (REQUEST_TIME >= variable_get('google_analytics_counter_cron_next_execution', 0)) {
+    variable_set('google_analytics_counter_cron_next_execution', REQUEST_TIME + $interval); // Important to set it before the job because if they take long and there is another cron triggered...
     google_analytics_counter_update_path_counts();
-    variable_set('google_analytics_counter_cron_next_execution', REQUEST_TIME + $interval);
-    //watchdog('Google Analytics Counter', 'pathcron'); // TEMP REMOVE @todo
-/*
+    //watchdog('Google Analytics Counter', 'pathandnodecron'); // TEMP REMOVE @todo
   }
-  else {
-    // If not fetching data from GA, update the node_counter table.
-    */
-    google_analytics_counter_update_node_counter();
-//    variable_set('google_analytics_counter_cron_next_execution_node_counter', REQUEST_TIME + $interval);
-    //watchdog('Google Analytics Counter', 'nodecron'); // TEMP REMOVE @todo
-  }
+  //watchdog('Google Analytics Counter', 'nocron'); // TEMP REMOVE @todo
 }
 
 /**
@@ -326,16 +318,6 @@ function google_analytics_counter_details(){
   ->execute();
   $num_of_results = $dbresult->rowCount();
   $result .= '<br />Number of paths currently stored in local database table: ' . number_format($num_of_results) . '. This table is initially built and then regularly updated during cron runs.';
-  $temp = variable_get('google_analytics_counter_chunk_process_time', 0);
-  if ($temp < 0) {
-    $temp = 0;
-  }
-  $result .= '<br />The most recent retrieval of ' . number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0)) . ' paths from Google Analytics took ' . google_analytics_counter_sec2hms($temp) . '. ';
-  $temp = variable_get('google_analytics_counter_cron_next_execution', 60*variable_get('google_analytics_counter_cron_interval', 60))-REQUEST_TIME;
-  if ($temp < 0) {
-    $temp = 0;
-  }
-  $result .= 'The next one will take place in ' . google_analytics_counter_sec2hms($temp) . '.';
 
   $apicalls = variable_get('google_analytics_counter_dayquota', array(0, 0));
   $result .= '<p>Number of requests made to Google Analytics: ' . number_format($apicalls[1]) . '. Only calls made by this module are counted here. Other modules and apps may be making more requests. ';
@@ -361,18 +343,21 @@ function google_analytics_counter_details(){
   ->execute();
   $num_of_results = $dbresult->rowCount();
   $result .= '<br />Number of nodes with known pageview counts on this site: ' . number_format($num_of_results) . '.';
-  $temp = variable_get('google_analytics_counter_chunk_node_process_time', 0);
+
+  $temp = variable_get('google_analytics_counter_chunk_process_time', 0);
   if ($temp < 0) {
     $temp = 0;
   }
-  $result .= '<br />The most recent retrieval of ' . number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0)) . ' node counts from the local database table took ' . google_analytics_counter_sec2hms($temp) . '. ';
-  $temp = variable_get('google_analytics_counter_cron_next_execution_node_counter', 60*variable_get('google_analytics_counter_cron_interval', 60))-REQUEST_TIME;
+  $result .= '<p>The most recent retrieval of ' . number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0)) . ' paths from Google Analytics and ';
+  //$result .= number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0));
+  $result .= ' node counts from its local mirror took ' . google_analytics_counter_sec2hms($temp) . '. ';
+  $temp = variable_get('google_analytics_counter_cron_next_execution', 60*variable_get('google_analytics_counter_cron_interval', 60))-REQUEST_TIME;
   if ($temp < 0) {
     $temp = 0;
   }
   $result .= 'The next one will take place in ' . google_analytics_counter_sec2hms($temp) . '.';
   
-  $result .= '<p>To run cron immediately: <a href="/admin/reports/status/run-cron?destination=admin/config/system/google_analytics_counter/details">click here</a>.';
+  $result .= '<p>To run cron immediately: <a href="/admin/reports/status/run-cron?destination=admin/config/system/google_analytics_counter/dashboard">click here</a>.';
 
   return $result;
 }

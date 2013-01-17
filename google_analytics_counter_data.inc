@@ -99,7 +99,7 @@ function google_analytics_counter_update_path_counts(){
   watchdog('Google Analytics Counter', 'Retrieved '.sizeof(@$new_data->results->rows).' items from Google Analytics data for paths '.($pointer-$chunk).'-'.($pointer-$chunk-1+sizeof(@$new_data->results->rows)).'.', NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
-  if ($pointer < $resultcount){
+  if ($pointer <= $resultcount){
     // If there are more results than what we've reached with this chunk, increase step to look further during the next run.
     $newstep = $step+1;
   }
@@ -111,7 +111,7 @@ function google_analytics_counter_update_path_counts(){
 
   // Record how long did this chunk take to process.
   variable_set('google_analytics_counter_chunk_process_time', time()-$chunkprocessbegin);
-
+4
 }
 
 /**
