@@ -56,29 +56,35 @@ function google_analytics_counter_update_path_counts(){
       'refresh' => FALSE, //@todo
       );
   $new_data = @google_analytics_counter_report_data($request, $cachehere);
-  //dpm($new_data);return;exit();
-  if(!empty($new_data->error)){ // If NULL then there is no error.
-    watchdog('Google Analytics Counter', 'Problem fetching data from Google Analytics: ' . $new_data->error . ' Did you authenticate any Google Analytics profille? See <a href="/admin/config/system/google_analytics_counter/authentication">here</a>.', NULL, WATCHDOG_ERROR);
-    // Nothing to do; return.
-    //return;
-  }
-  else {
-    $resultsretrieved = $new_data->results->rows;
-    foreach($resultsretrieved as $val){
 
-      // http://drupal.org/node/310085
-      db_merge('google_analytics_counter')
-      ->key(array('pagepath_hash' => md5($val['pagePath'])))
-      ->fields(array(
-        'pagepath' => $val['pagePath'],
-        'pageviews' => $val['pageviews'],
-        ))
-      ->execute();
+  if (!$new_data->fromCache){ // Don't write anything to google_analytics_counter if this GA data comes from cache (would be writing the same again).
 
+    // This was a live request. Increase the GA request limit tracker.
+    variable_set('google_analytics_counter_dayquota', array($dayquota[0], ($dayquota[1]+1)));
+
+    if(!empty($new_data->error)){ // If NULL then there is no error.
+      watchdog('Google Analytics Counter', 'Problem fetching data from Google Analytics: ' . $new_data->error . ' Did you authenticate any Google Analytics profille? See <a href="/admin/config/system/google_analytics_counter/authentication">here</a>.', NULL, WATCHDOG_ERROR);
+      // Nothing to do; return.
+      //return;
     }
-  }
-  //dpm($new_data);
-  
+    else {
+      $resultsretrieved = $new_data->results->rows;
+      foreach($resultsretrieved as $val){
+
+        // http://drupal.org/node/310085
+        db_merge('google_analytics_counter')
+        ->key(array('pagepath_hash' => md5($val['pagePath'])))
+        ->fields(array(
+          'pagepath' => $val['pagePath'],
+          'pageviews' => $val['pageviews'],
+          ))
+        ->execute();
+
+      }
+    }
+    
+  } 
+
   // The total number of records for this profile.
   $resultcount = @$new_data->results->totalResults;
   // Store it in a variable.
@@ -91,9 +97,6 @@ function google_analytics_counter_update_path_counts(){
 
   // Set the pointer.
   $pointer += $chunk;
-
-  // Increase the GA request limit tracker.
-  variable_set('google_analytics_counter_dayquota', array($dayquota[0], ($dayquota[1]+1)));
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
   watchdog('Google Analytics Counter', 'Retrieved '.sizeof(@$new_data->results->rows).' items from Google Analytics data for paths '.($pointer-$chunk).'-'.($pointer-$chunk-1+sizeof(@$new_data->results->rows)).'.', NULL, WATCHDOG_INFO);
