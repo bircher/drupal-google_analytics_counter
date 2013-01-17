@@ -352,13 +352,13 @@ function google_analytics_counter_details(){
   $num_of_results = $dbresult->rowCount();
   $result .= '<br />Number of nodes with known pageview counts on this site: ' . number_format($num_of_results) . '.';
 
-  $temp = variable_get('google_analytics_counter_chunk_process_time', 0);
+  $temp = variable_get('google_analytics_counter_chunk_process_time', 0) + variable_get('google_analytics_counter_chunk_node_process_time', 0);
   if ($temp < 0) {
     $temp = 0;
   }
   $result .= '<p>The most recent retrieval of ' . number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0)) . ' paths from Google Analytics and ';
   //$result .= number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0));
-  $result .= ' node counts from its local mirror took ' . google_analytics_counter_sec2hms($temp) . '. ';
+  $result .= ' node counts from its local mirror took ' . google_analytics_counter_sec2hms($temp) . ' (' . variable_get('google_analytics_counter_chunk_process_time', 0) . '+' . variable_get('google_analytics_counter_chunk_node_process_time', 0) . 's)' .'. ';
   $temp = variable_get('google_analytics_counter_cron_next_execution', 60*variable_get('google_analytics_counter_cron_interval', 60))-REQUEST_TIME;
   if ($temp < 0) {
     $temp = 0;
