@@ -233,32 +233,6 @@ function google_analytics_counter_display($path = '') {
 
 
 /**
- * @todo Please document this function.
- */
-/*
-function google_analytics_counter_construct_content($sumarray) {
-
-  $result = '';
-
-  $sum_of_pageviews = '';
-
-  $sum_of_pageviews .= @$sumarray[0];
-
-  if (@$sumarray[0] == 0) {
-    //@todo
-    // If $sumarray[2] is zero, it means nothing was fetched (cache expired but there was concurrency and new data could not be retrieved). We will return nothing -- until new value can be retrieved.
-    $result = '';
-  }
-  else {
-    $result .= $sum_of_pageviews;
-  }
-
-  return $result;
-}
-*/
-
-
-/**
  * Implements hook_cron().
  *
  */
@@ -283,11 +257,8 @@ function google_analytics_counter_cron() {
     google_analytics_counter_update_path_counts();
     // Now also update the node_counter table from the local table with the GA data.
     google_analytics_counter_update_node_counter(); 
-    //watchdog('Google Analytics Counter', 'pathandnodecron'); // TEMP REMOVE @todo
   }
-  //else {
-  //watchdog('Google Analytics Counter', 'nocron'); // TEMP REMOVE @todo
-  //}
+
 }
 
 /**

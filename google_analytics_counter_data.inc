@@ -53,7 +53,7 @@ function google_analytics_counter_update_path_counts(){
   $cachehere = array(
     'cid' => 'google_analytics_counter_' . md5(serialize($request)),
     'expire' => google_analytics_counter_cache_time(),
-      'refresh' => FALSE, //@todo
+      'refresh' => FALSE, 
       );
   $new_data = @google_analytics_counter_report_data($request, $cachehere);
 
@@ -252,7 +252,6 @@ function google_analytics_counter_update_node_counter(){
   // How many node counts to update one cron run. 
   // We use the same chunk size as when getting paths in google_analytics_counter_update_path_counts().
   $chunk = variable_get('google_analytics_counter_chunk_to_fetch', 1000);
-  //$chunk = 2; // JUST TESTING! @todo
   // In case there are more than $chunk nodes to process, do just one chunk at a time and register that in $step.
   $step = variable_get('google_analytics_counter_node_data_step', 0);
   // Which node to look for first. Must be between 0 - infinity.
