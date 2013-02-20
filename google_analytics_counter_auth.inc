@@ -46,10 +46,10 @@ function google_analytics_counter_auth_admin() {
 
     /* Add optgroups for each web property */
     foreach ($profiles as $profile) {
-      $webprop = null;
+      $webprop = NULL;
       foreach ($webprops as $webprop_value) {
         if ($webprop_value->id == $profile->webPropertyId) {
-          $webprop = $webprop_value;  
+          $webprop = $webprop_value;
           break;
         }
       }
@@ -129,7 +129,7 @@ function google_analytics_counter_auth_admin() {
       '#description' => t('Provide the domain name (example.com) if your domain is registered with Google Apps for Business.  Otherwise, leave blank.'),
       '#default_value' => variable_get('google_analytics_counter_hd', ''),
     );
-   $form['setup']['setup_submit'] = array(
+    $form['setup']['setup_submit'] = array(
       '#type' => 'submit',
       '#value' => t('Start setup and authorize account'),
     );
@@ -227,7 +227,7 @@ function theme_google_analytics_counter_profile_label($variables) {
 }
 
 
-/*
+/**
  * Programatically revoke token.
  */
 function google_analytics_counter_revoke() {

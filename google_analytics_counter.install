@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /**
  * @file
@@ -14,7 +14,7 @@
  */
 /*
 function google_analytics_counter_install() {
-  
+
 }
 */
 
@@ -54,15 +54,15 @@ function google_analytics_counter_schema() {
     'description' => 'Google Analytics data storage.',
     'fields' => array(
       'pagepath_hash' => array(
-        'type' => 'varchar', 
-        'length' => 32, 
+        'type' => 'varchar',
+        'length' => 32,
         'description' => 'md5 hash of the relative page path.',
         'not null' => TRUE,
         ),
       'pagepath' => array(
         'type' => 'varchar', // varchar faster than text on MySQL (not creating temp table on disk); see http://drupal.org/node/146939#comment-2281846
         'length' => 2048, // see http://stackoverflow.com/a/417184/269383
-        'description' => 'Relative page path, e.g. "node/1" or "contact", as stored by GA.',
+        'description' => 'Relative page path, for example "node/1" or "contact", as stored by GA.',
         'not null' => TRUE,
         ),
       'pageviews' => array(
@@ -86,8 +86,8 @@ return $schema;
 
 
 /**
-* Add the google_analytics_counter table for the Google Analytics Counter module.
-*/
+ * Add the google_analytics_counter table for the Google Analytics Counter module.
+ */
 function google_analytics_counter_update_7201() {
   if (!db_table_exists('google_analytics_counter')) {
     $schema = google_analytics_counter_schema();
@@ -123,7 +123,7 @@ function google_analytics_counter_requirements($phase) {
 
     $authenticated = FALSE;
     // It's a weak test but better than none.
-    if (variable_get('google_analytics_counter_profile_id') <> ''){ 
+    if (variable_get('google_analytics_counter_profile_id') <> '') {
       $authenticated = TRUE;
     }
     if (!$authenticated) {
@@ -135,7 +135,7 @@ function google_analytics_counter_requirements($phase) {
 
     $corestats = variable_get('statistics_count_content_views');
     // Core statistics module counter must be switched off
-    if ($corestats == 1){ 
+    if ($corestats == 1) {
       $requirements['google_analytics_counter_core_statistics']['title'] = t('Drupal core statistics counter is switched on');
       $requirements['google_analytics_counter_core_statistics']['description'] = $t('Drupal core statistics counter must be switched off. At the moment its values are being overwritten by those from Google Analytics Counter (and vice versa). Please switch it off <a href="/admin/config/system/statistics">here</a>.');
       $requirements['google_analytics_counter_core_statistics']['severity'] = REQUIREMENT_ERROR;
@@ -145,4 +145,4 @@ function google_analytics_counter_requirements($phase) {
   }
 
   return $requirements;
-}  
+}

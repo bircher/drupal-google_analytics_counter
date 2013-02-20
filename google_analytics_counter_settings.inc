@@ -1,8 +1,10 @@
 <?php
 
 /**
+ * @file
  * Settings form.
  */
+
 function google_analytics_counter_admin($form, &$form_state) {
 
   $defaultcroninterval = 60;
@@ -11,14 +13,14 @@ function google_analytics_counter_admin($form, &$form_state) {
 
   $times = array();
   $intervals = array(1, 3, 5, 10, 20, 30, 60, 180, 360, 720, 1440);
-  foreach($intervals as $interval){
+  foreach ($intervals as $interval) {
     $times[] = $interval;
   }
   $form['google_analytics_counter_cron_interval'] = array(
     '#type' => 'select',
     '#title' => t('Minimum time between Google Analytics data fetching'),
     '#default_value' => variable_get('google_analytics_counter_cron_interval', $defaultcroninterval),
-    '#description' => t('Google Analytics statistical data is fetched and processed via a cron job. If your cron runs too frequently, you may waste your GA daily quota too fast. Set here the minimum time that needs to elapse before the Google Analytics Counter cron runs (even if your cron job runs more frequently). Specify the time in <em>minutes</em>. Default: '.$defaultcroninterval.' minutes.'),
+    '#description' => t('Google Analytics statistical data is fetched and processed via a cron job. If your cron runs too frequently, you may waste your GA daily quota too fast. Set here the minimum time that needs to elapse before the Google Analytics Counter cron runs (even if your cron job runs more frequently). Specify the time in <em>minutes</em>. Default: ' . $defaultcroninterval . ' minutes.'),
     '#options' => drupal_map_assoc($times),
     '#required' => TRUE,
     );
@@ -32,7 +34,7 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#type' => 'select',
     '#title' => t('Number of items to fetch from Google Analytics in one request'),
     '#default_value' => variable_get('google_analytics_counter_chunk_to_fetch', $chunk),
-    '#description' => t('How many items will be fetched from Google Analytics in one request (during a cron run). The maximum allowed by Google is 10000 but it may take too long and time out. Default: '.$chunk.' items.'),
+    '#description' => t('How many items will be fetched from Google Analytics in one request (during a cron run). The maximum allowed by Google is 10000 but it may take too long and time out. Default: ' . $chunk . ' items.'),
     '#options' => drupal_map_assoc($times),
     '#required' => TRUE,
     );
@@ -43,11 +45,11 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#default_value' => variable_get('google_analytics_counter_api_dayquota', $dayquota),
     '#size' => 9,
     '#maxlength' => 9,
-    '#description' => t('This is the <em>daily limit</em> of requests <em>per profile</em> to the Google Analytics API. You don\'t need to change this value until Google relaxes their quota policy. Current value: '.$dayquota.'.<br />It is reasonable to expect that Google will increase this low number sooner rather than later, so watch the <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas#discovery" target="_blank">quota</a> page for changes.<br />To get the full quota, you must <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas#full_quota" target="_blank">register your Analytics API</a>.'),
+    '#description' => t('This is the <em>daily limit</em> of requests <em>per profile</em> to the Google Analytics API. You don\'t need to change this value until Google relaxes their quota policy. Current value: ' . $dayquota . '.<br />It is reasonable to expect that Google will increase this low number sooner rather than later, so watch the <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas#discovery" target="_blank">quota</a> page for changes.<br />To get the full quota, you must <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas#full_quota" target="_blank">register your Analytics API</a>.'),
     '#required' => TRUE,
     );
 
-  // GA response cache options 
+  // GA response cache options
   $times = array();
   for ($hours = 1; $hours <= 24; $hours++) {
     $times[] = $hours * GOOGLE_ANALYTICS_COUNTER_HOUR;

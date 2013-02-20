@@ -87,7 +87,7 @@ class GAFeed {
    * Set the queryPath property
    */
   protected function setQueryPath($path) {
-    $this->queryPath = 'https://'. $this->host .'/'. $path;
+    $this->queryPath = 'https://' . $this->host . '/' . $path;
   }
 
   /**
@@ -186,7 +186,7 @@ class GAFeed {
 
     if (!$cache_options['refresh'] && isset($cache) && !empty($cache->data)) {
       $this->response = $cache->data;
-      $this->results = json_decode($this->response->data);      
+      $this->results = json_decode($this->response->data);
       $this->fromCache = TRUE;
     }
     else {
@@ -217,14 +217,14 @@ class GAFeed {
     $data = '';
     if (count($params) > 0) {
       if ($method == 'GET') {
-        $url .= '?'. http_build_query($params, '', '&');
+        $url .= '?' . http_build_query($params, '', '&');
       }
       else {
         $data = http_build_query($params, '', '&');
       }
     }
     $headers = array();
-    
+
     $this->response = drupal_http_request($url, $headers, $method, $data);
 
     if ($this->response->code == '200') {
@@ -246,7 +246,7 @@ class GAFeed {
    * Query Management API - Accounts
    */
   public function queryAccounts($params = array(), $cache_options = array()) {
-    $this->setQueryPath('management/accounts');    
+    $this->setQueryPath('management/accounts');
     $this->query($this->queryPath, $params, 'GET', $cache_options);
     return $this;
   }
@@ -266,7 +266,7 @@ class GAFeed {
   /**
    * Query Management API - Profiles
    */
-  public function queryProfiles($params = array(), $cache_options = array()) {    
+  public function queryProfiles($params = array(), $cache_options = array()) {
     $params += array(
       'account-id' => '~all',
       'web-property-id' => '~all',
@@ -362,7 +362,7 @@ class GAFeed {
       /* Assume a Unix timestamp */
       $end_date = date('Y-m-d', $params['end_date']);
     }
-    
+
     $parameters['end-date'] = $end_date;
 
     /* Accept only strings, not arrays, for the following parameters */

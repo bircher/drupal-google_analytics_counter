@@ -1,9 +1,14 @@
 <?php
 
 /**
+ * @file
+ * Parsing and writing the fetched data.
+ */
+
+/**
  * Find how many distinct paths does Google Analytics have for this profile. This function is triggered by hook_cron().
  */
-function google_analytics_counter_update_path_counts(){
+function google_analytics_counter_update_path_counts() {
 
   // Record how long did this chunk take to process.
   $chunkprocessbegin = time();
@@ -22,16 +27,16 @@ function google_analytics_counter_update_path_counts(){
   $maxdailyrequests = variable_get('google_analytics_counter_api_dayquota', 10000); // see http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
   if ($dayquota[1] > $maxdailyrequests) {
     //dpm('limit hit!');
-    watchdog('Google Analytics Counter', 'Google Analytics API quota of '.$maxdailyrequests.' requests has been reached. Will NOT fetch data from Google Analytics for the next '.($dayquota[0]+86400-REQUEST_TIME).' seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', NULL, WATCHDOG_ERROR);
+    watchdog('Google Analytics Counter', 'Google Analytics API quota of ' . $maxdailyrequests . ' requests has been reached. Will NOT fetch data from Google Analytics for the next ' . ($dayquota[0]+86400-REQUEST_TIME) . ' seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', NULL, WATCHDOG_ERROR);
     return;
   }
 
-  // How many results to ask from GA in one request. Default on 1000 to fit most systems (e.g. those with no external cron).
+  // How many results to ask from GA in one request. Default on 1000 to fit most systems (for example those with no external cron).
   $chunk = variable_get('google_analytics_counter_chunk_to_fetch', 1000);
   // In case there are more than $chunk path/counts to retrieve from GA, do just one chunk at a time and register that in $step.
   $step = variable_get('google_analytics_counter_data_step', 0);
   // Which GA result to look for first. Must be between 1 - infinity.
-  $pointer = $step*$chunk+1; 
+  $pointer = $step*$chunk+1;
   //dpm('START chunk '.$chunk);
   //dpm('START step '.$step);
   //dpm('START pointer '.$pointer);
@@ -53,23 +58,23 @@ function google_analytics_counter_update_path_counts(){
   $cachehere = array(
     'cid' => 'google_analytics_counter_' . md5(serialize($request)),
     'expire' => google_analytics_counter_cache_time(),
-      'refresh' => FALSE, 
+      'refresh' => FALSE,
       );
   $new_data = @google_analytics_counter_report_data($request, $cachehere);
 
-  if (!$new_data->fromCache){ // Don't write anything to google_analytics_counter if this GA data comes from cache (would be writing the same again).
+  if (!$new_data->fromCache) { // Don't write anything to google_analytics_counter if this GA data comes from cache (would be writing the same again).
 
     // This was a live request. Increase the GA request limit tracker.
     variable_set('google_analytics_counter_dayquota', array($dayquota[0], ($dayquota[1]+1)));
 
-    if(!empty($new_data->error)){ // If NULL then there is no error.
+    if (!empty($new_data->error)) { // If NULL then there is no error.
       watchdog('Google Analytics Counter', 'Problem fetching data from Google Analytics: ' . $new_data->error . ' Did you authenticate any Google Analytics profille? See <a href="/admin/config/system/google_analytics_counter/authentication">here</a>.', NULL, WATCHDOG_ERROR);
       // Nothing to do; return.
       //return;
     }
     else {
       $resultsretrieved = $new_data->results->rows;
-      foreach($resultsretrieved as $val){
+      foreach ($resultsretrieved as $val) {
 
         // http://drupal.org/node/310085
         db_merge('google_analytics_counter')
@@ -82,8 +87,8 @@ function google_analytics_counter_update_path_counts(){
 
       }
     }
-    
-  } 
+
+  }
 
   // The total number of records for this profile.
   $resultcount = @$new_data->results->totalResults;
@@ -91,7 +96,7 @@ function google_analytics_counter_update_path_counts(){
   variable_set('google_analytics_counter_totalpaths', $resultcount);
 
   // The total number of hits for all records for this profile.
-  $totalhits = @$new_data->results->totalsForAllResults['pageviews']; 
+  $totalhits = @$new_data->results->totalsForAllResults['pageviews'];
   variable_set('google_analytics_counter_totalhits', $totalhits);
   //dpm('totalhits: '.$totalhits);
 
@@ -99,10 +104,10 @@ function google_analytics_counter_update_path_counts(){
   $pointer += $chunk;
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog('Google Analytics Counter', 'Retrieved '.sizeof(@$new_data->results->rows).' items from Google Analytics data for paths '.($pointer-$chunk).'-'.($pointer-$chunk-1+sizeof(@$new_data->results->rows)).'.', NULL, WATCHDOG_INFO);
+  watchdog('Google Analytics Counter', 'Retrieved ' . sizeof(@$new_data->results->rows) . ' items from Google Analytics data for paths ' . ($pointer-$chunk) . '-' . ($pointer-$chunk-1+sizeof(@$new_data->results->rows)) . '.', NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
-  if ($pointer <= $resultcount){
+  if ($pointer <= $resultcount) {
     // If there are more results than what we've reached with this chunk, increase step to look further during the next run.
     $newstep = $step+1;
   }
@@ -129,7 +134,7 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
   }
 
   $cacheid = md5($path);
-  if ($cache = cache_get('google_analytics_counter_page_'.$cacheid) AND $cacheon) {
+  if ($cache = cache_get('google_analytics_counter_page_' . $cacheid) AND $cacheon) {
     $sum_of_pageviews = $cache->data;
     //dpm('CACHED');
   }
@@ -142,9 +147,9 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     $unprefixedaliases = _google_analytics_counter_path_aliases($path);
     //dpm($unprefixedaliases);
     $allpaths = array();
-    foreach($unprefixedaliases as $val){
+    foreach ($unprefixedaliases as $val) {
       // Google Analytics stores initial slash as well, so let's prefix them.
-      $allpaths[] = md5('/'.$val);
+      $allpaths[] = md5('/' . $val);
     }
     //dpm($allpaths);
 
@@ -157,13 +162,13 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     ->condition('pagepath_hash', $allpaths, 'IN')
     ->execute();
     $sum_of_pageviews = 0;
-    foreach($pathcounts as $pathcount){
+    foreach ($pathcounts as $pathcount) {
       //dpm($pathcount);
       $sum_of_pageviews += $pathcount->pageviews;
     }
     //dpm($sum_of_pageviews);
 
-    cache_set('google_analytics_counter_page_'.$cacheid, $sum_of_pageviews, 'cache', CACHE_TEMPORARY);
+    cache_set('google_analytics_counter_page_' . $cacheid, $sum_of_pageviews, 'cache', CACHE_TEMPORARY);
     //dpm('UNCACHED');
   }
 
@@ -171,7 +176,7 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
   return $sum_of_pageviews;
 }
 
-/*
+/**
  * Return a list of paths that are aliased with the given path (including the given path).
  */
 function _google_analytics_counter_path_aliases($node_path) {
@@ -235,7 +240,7 @@ function google_analytics_counter_report_data($params = array(), $cache_options 
 /**
  * Get pageviews for nodes and write them to Drupal core table node_counter. This function is triggered by hook_cron().
  */
-function google_analytics_counter_update_node_counter(){
+function google_analytics_counter_update_node_counter() {
 
   // Record how long did this chunk take to process.
   $chunkprocessbegin = time();
@@ -249,13 +254,13 @@ function google_analytics_counter_update_node_counter(){
   // Store it in a variable.
   variable_set('google_analytics_counter_totalnodes', $resultcount);
 
-  // How many node counts to update one cron run. 
+  // How many node counts to update one cron run.
   // We use the same chunk size as when getting paths in google_analytics_counter_update_path_counts().
   $chunk = variable_get('google_analytics_counter_chunk_to_fetch', 1000);
   // In case there are more than $chunk nodes to process, do just one chunk at a time and register that in $step.
   $step = variable_get('google_analytics_counter_node_data_step', 0);
   // Which node to look for first. Must be between 0 - infinity.
-  $pointer = $step*$chunk; 
+  $pointer = $step*$chunk;
   //dpm('START chunk '.$chunk);
   //dpm('START step '.$step);
   //dpm('START pointer '.$pointer);
@@ -265,14 +270,12 @@ function google_analytics_counter_update_node_counter(){
   //->condition('pagepath', 'node/%', 'LIKE')
   ->range($pointer, $chunk)
   ->execute();
-  foreach($dbresults as $dbresult){
-    //dpm($dbresult);
+  foreach ($dbresults as $dbresult) {
 
-    $path = 'node/'.$dbresult->nid;
+    $path = 'node/' . $dbresult->nid;
 
     // Get the count for this node (uncached)
     $sum_of_pageviews = google_analytics_counter_get_sum_per_path($path, FALSE);
-    //dpm($path.' ... '.$sum_of_pageviews);
 
     // Don't write zeroes.
     if ($sum_of_pageviews == 0) continue;
@@ -294,10 +297,10 @@ function google_analytics_counter_update_node_counter(){
   //dpm('END pointer: '.$pointer);
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog('Google Analytics Counter', 'Attempted updating '. $dbresults->rowCount() .' records in node_counter from Google Analytics data ' . ($pointer-$chunk+1) . '-'.($pointer-$chunk+$dbresults->rowCount()).'.', NULL, WATCHDOG_INFO);
+  watchdog('Google Analytics Counter', 'Attempted updating ' . $dbresults->rowCount() . ' records in node_counter from Google Analytics data ' . ($pointer-$chunk+1) . '-' . ($pointer-$chunk+$dbresults->rowCount()) . '.', NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
-  if ($pointer < $resultcount){
+  if ($pointer < $resultcount) {
     // If there are more results than what we've reached with this chunk, increase step to look further during the next run.
     $newstep = $step+1;
     //dpm('step +1: '.$newstep);
