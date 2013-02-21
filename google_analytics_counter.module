@@ -168,15 +168,24 @@ function google_analytics_counter_filter_info() {
   return $filters;
 }
 
+/**
+ * Implements hook_filter_FILTER_prepare().
+ */
 function google_analytics_counter_filter_google_analytics_counter_prepare($text, $filter) {
   return $text;
 }
 
+/**
+ * Implements hook_filter_FILTER_process().
+ */
 function google_analytics_counter_filter_google_analytics_counter_process($text, $filter) {
   $text = replace_google_analytics_counter_tags($text);
   return $text;
 }
 
+/**
+ * Finds [gac|...] tags and replaces them by actual values.
+ */
 function replace_google_analytics_counter_tags($str) {
   // [gac|path/to/page]
 
@@ -347,7 +356,7 @@ function google_analytics_counter_details() {
 }
 
 
-/*
+/**
  * Convert seconds to hours, minutes and seconds.
  */
 function google_analytics_counter_sec2hms($sec, $padHours = FALSE) {

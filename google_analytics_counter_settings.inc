@@ -5,6 +5,9 @@
  * Settings form.
  */
 
+/**
+ * Config form shown at admin/config/system/google_analytics_counter
+ */
 function google_analytics_counter_admin($form, &$form_state) {
 
   $defaultcroninterval = 60;
