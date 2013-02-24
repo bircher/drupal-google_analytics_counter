@@ -94,7 +94,7 @@ function google_analytics_counter_auth_admin() {
       '#title' => t('Reports profile'),
       '#options' => $options,
       '#default_value' => $profile_id,
-      '#description' => t("Choose your Google Analytics profile.  The currently active profile is: %profile", array('%profile' => theme('google_analytics_counter_profile_label', array('profile' => $current_profile)))),
+      '#description' => t("Choose your Google Analytics profile. The currently active profile is: %profile", array('%profile' => theme('google_analytics_counter_profile_label', array('profile' => $current_profile)))),
       '#required' => TRUE,
     );
     $form['ga']['settings_submit'] = array(
@@ -104,7 +104,7 @@ function google_analytics_counter_auth_admin() {
     $form['revoke'] = array(
       '#type' => 'fieldset',
       '#title' => t('Revoke access and logout'),
-      '#description' => t('Revoke your access token to Google Analytics.  This action will log you out of your Google Analytics account and stop all reports from displaying on your site.'),
+      '#description' => t('Revoke your access token to Google Analytics. This action will log you out of your Google Analytics account and stop all reports from displaying on your site.'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#weight' => 5,
@@ -119,14 +119,14 @@ function google_analytics_counter_auth_admin() {
     $form['setup'] = array(
       '#type' => 'fieldset',
       '#title' => t('Initial setup'),
-      '#description' => t("When you submit this form, you will be redirected to Google for authentication.  Login with the account that has credentials to the Google Analytics profile you'd like to use."),
+      '#description' => t("When you submit this form, you will be redirected to Google for authentication. Login with the account that has credentials to the Google Analytics profile you'd like to use."),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
     );
     $form['setup']['google_analytics_counter_hd'] = array(
       '#type' => 'textfield',
       '#title' => t('Google Apps for Business Domain (optional)'),
-      '#description' => t('Provide the domain name (example.com) if your domain is registered with Google Apps for Business.  Otherwise, leave blank.'),
+      '#description' => t('Provide the domain name (example.com) if your domain is registered with Google Apps for Business. Otherwise, leave blank.'),
       '#default_value' => variable_get('google_analytics_counter_hd', ''),
     );
     $form['setup']['setup_submit'] = array(
