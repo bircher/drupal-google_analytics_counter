@@ -192,7 +192,7 @@ function replace_google_analytics_counter_tags($str) {
   $matchlink = '';
   $orig_match = '';
   $matches = '';
-  preg_match_all("/(\[)gac[^\]]*(\])/s", $str, $matches);
+  preg_match_all("/(\[)gac[^\]]*(\])/s", $str, $matches); // This allows more than one pipe sign (|) ... does not hurt and leaves room for possible extension.
 
   foreach ($matches[0] as $match) {
 
