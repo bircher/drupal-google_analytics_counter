@@ -222,19 +222,16 @@ function replace_google_analytics_counter_tags($str) {
  */
 function google_analytics_counter_display($path = '') {
 
-  global $language;
-
-  $lprefix = '';
-  if (@$language->prefix <> '' AND @$language->prefix <> 'und') $lprefix = (@$language->prefix).'/';
-
   if ($path == '') {
-    $path = $_GET['q'];
+    //$path = $_GET['q'];
     //dpm($language);
-    $path = $lprefix.$path;
+    //$path = $lprefix.$path;
+    // We need a path that includes the language prefix, if any. E.g. en/my/path (of /en/my/path - the initial slash will be dealt with later).
+    $path = parse_url("http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]", PHP_URL_PATH); // @TODO: Works OK on non-Apache servers?
   }
   //dpm($path);
   // Check all paths, to be sure.
-  $path = check_plain($path);
+  //$path = check_plain($path);
 
   $block_content = '';
   //$block_content .= '<span id="google-analytics-counter-' . md5($path) . '">';

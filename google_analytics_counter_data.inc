@@ -126,11 +126,24 @@ function google_analytics_counter_update_path_counts() {
  */
 function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
 
+ //dpm('==============================================================');
+
   // Recognize special path 'all' to get the sum of all pageviews for the profile.
   if ($path == 'all') {
     //dpm('yep: '.variable_get('google_analytics_counter_totalhits', 0));
     return variable_get('google_analytics_counter_totalhits', 0);
   }
+
+  if ($path == '') {
+    // We need a path that includes the language prefix, if any. E.g. en/my/path (of /en/my/path - the initial slash will be dealt with later).
+    $path = parse_url("http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]", PHP_URL_PATH); // @TODO: Works OK on non-Apache servers?
+  }
+
+  $path = check_plain($path); // Esp. in case function is called directly.
+
+  // Remove initial slash, if any.
+  if (substr($path, 0, 1) == '/') $path = substr($path, 1);
+  //dpm($path);
 
   //If it's a node we'll distinguish the language part of it, if any. Either format en/node/55 or node/55.
   $splitpath = explode('/', $path);
@@ -158,8 +171,52 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       break; // Is just 1 result anyway.
     }
   }
- //dpm('found path: '.$path);
- //dpm('found prefix: '.$lang_prefix);
+ //dpm('detected NODE path: '.$path);
+ //dpm('detected NODE prefix: '.$lang_prefix);
+
+  //Now if it's a node but has a prefixed or unprefixed alias, e.g. en/my/path or my/path, we should also try to determine if it's a node and then count it's node/nid with it!
+  if ($lang_prefix == ''){
+    if (sizeof($splitpath) > 1 AND strlen($splitpath[0]) == 2 AND !is_numeric($splitpath[0])){ // E.g. en/view or nl/my/view or xx/view
+      // Now we need to find which nid does it correspond (the language prefix + the alias)
+      $withoutprefix = $splitpath;
+      $lang = array_shift($withoutprefix);
+      $withoutprefix = implode('/', $withoutprefix);
+     //dpm('withoutprefix: '.$withoutprefix);
+      $nodepath = drupal_lookup_path('source', $withoutprefix);
+     //dpm('system path for alias: '.$nodepath);
+      if ($nodepath !== FALSE) {
+        $path = $nodepath;
+        $lang_prefix = $lang.'/';
+      }
+    }
+  }
+ //dpm('detected ALIAS path: '.$path);
+ //dpm('detected ALIAS prefix: '.$lang_prefix);
+
+  //Now, it's also possible that it's a node alias but without prefix! E.g. my/path but in fact it's en/node/nid!
+  if ($lang_prefix == ''){
+    $nodepath = drupal_lookup_path('source', $path);
+    if ($nodepath !== FALSE) {
+      $path = $nodepath;
+      $splitnodepath = explode('/', $nodepath);
+      if (sizeof($splitnodepath) == 2 AND $splitnodepath[0] == 'node' AND is_numeric($splitnodepath[1])){
+        $dbresults = db_select('node', 'n')
+          ->fields('n', array('nid','language'))
+          ->condition('nid', $splitnodepath[1], '=')
+          ->execute();
+        foreach ($dbresults as $dbresult) {
+          //dpm($dbresult->language);
+          if ($dbresult->language <> 'und' AND $dbresult->language <> '') {
+            $lang_prefix = $dbresult->language.'/';
+          }
+          break; // Is just 1 result anyway.
+        }
+        //$lang_prefix = $lang.'/';
+      }
+    }
+  }
+ //dpm('detected NODE path from ALIAS: '.$path);
+ //dpm('detected NODE prefix from ALIAS: '.$lang_prefix);
 
   $cacheid = md5($lang_prefix.$path);
   if ($cache = cache_get('google_analytics_counter_page_' . $cacheid) AND $cacheon) {
@@ -171,17 +228,18 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
 
     // Get pageviews for this path and all its aliases.
     // NOTE: Here $path does NOT have an initial slash because it's coming from either check_plain($_GET['q']) (block) or from a tag like [gac|node/N].
-   //dpm('path: '.$path);
     $unprefixedaliases = _google_analytics_counter_path_aliases($path);
    //dpm($unprefixedaliases);
     $allpaths = array();
     foreach ($unprefixedaliases as $val) {
       // Google Analytics stores initial slash as well, so let's prefix them.
       $allpaths[] = md5('/'.$lang_prefix.$val); // With language prefix, if available, e.g. /en/node/55
+     //dpm('/'.$lang_prefix.$val);
       if ($lang_prefix <> ''){
         // Now, if we are counting NODE with language prefix, we also need to count the pageviews for that node without the prefix -- it could be that before it had no language prefix but it still was the same node!
         // BUT this will not work for non-nodes, e.g. views. There we depend on the path e.g. /en/myview because it would be tricky to get a valid language prefix out of the path. E.g. /en/myview could be a path of a view where "en" does not mean the English language. In other words, while prefix before node/id does not change the page (it's the same node), with views or other custom pages the prefix may actually contain completely different content.
         $allpaths[] = md5('/'.$val);
+       //dpm('/'.$val);
         // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
       }
     }
@@ -195,11 +253,11 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     //->condition('pagepath', array('/bg', '/node/3'), 'IN')
     ->condition('pagepath_hash', $allpaths, 'IN')
     ->execute();
-    //dpm($pathcounts);
+   //dpm($pathcounts);
     $sum_of_pageviews = 0;
     foreach ($pathcounts as $pathcount) {
      //dpm($pathcount);
-     //dpm('partial: '.$pathcount->pageviews);
+    //dpm('partial: '.$pathcount->pageviews);
       $sum_of_pageviews += $pathcount->pageviews;
     }
   //dpm('sum: '.$sum_of_pageviews);
@@ -208,7 +266,7 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     //dpm('UNCACHED');
   }
 
-  //dpm($sum_of_pageviews);
+ //dpm('total sum: '.$sum_of_pageviews);
   return $sum_of_pageviews;
 }
 
@@ -219,7 +277,7 @@ function _google_analytics_counter_path_aliases($node_path) {
 
   // Get the normal node path if it is a node.
   $node_path = drupal_get_normal_path($node_path);
-  //dpm($node_path);
+  //dpm('nodepath: '.$node_path);
 
   // Grab all aliases.
   $aliases = array($node_path);
