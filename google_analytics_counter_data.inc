@@ -132,7 +132,36 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     return variable_get('google_analytics_counter_totalhits', 0);
   }
 
-  $cacheid = md5($path);
+  //If it's a node we'll distinguish the language part of it, if any. Either format en/node/55 or node/55.
+  $splitpath = explode('/', $path);
+ //dpm($splitpath);
+  $lang_prefix = '';
+  if (
+      (sizeof($splitpath) == 3 AND strlen($splitpath[0]) == 2 AND $splitpath[1] == 'node' AND is_numeric($splitpath[2]))
+      OR
+      (sizeof($splitpath) == 2 AND $splitpath[0] == 'node' AND is_numeric($splitpath[1]))
+     ){
+    //dpm($splitpath[2]);
+    $dbresults = db_select('node', 'n')
+      ->fields('n', array('nid','language'))
+      ->condition('nid', '5', '=')
+      ->execute();
+    foreach ($dbresults as $dbresult) {
+      //dpm($dbresult->language);
+      if ($dbresult->language <> 'und' AND $dbresult->language <> '') {
+        $lang_prefix = $dbresult->language.'/';
+        // If this is a language-prefixed node we need its path without the prefix for later.
+        if (sizeof($splitpath) == 3){
+          $path = $splitpath[1].'/'.$splitpath[2];
+        }
+      }
+      break; // Is just 1 result anyway.
+    }
+  }
+ //dpm('found path: '.$path);
+ //dpm('found prefix: '.$lang_prefix);
+
+  $cacheid = md5($lang_prefix.$path);
   if ($cache = cache_get('google_analytics_counter_page_' . $cacheid) AND $cacheon) {
     $sum_of_pageviews = $cache->data;
     //dpm('CACHED');
@@ -142,15 +171,21 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
 
     // Get pageviews for this path and all its aliases.
     // NOTE: Here $path does NOT have an initial slash because it's coming from either check_plain($_GET['q']) (block) or from a tag like [gac|node/N].
-    //dpm('path: '.$path);
+   //dpm('path: '.$path);
     $unprefixedaliases = _google_analytics_counter_path_aliases($path);
-    //dpm($unprefixedaliases);
+   //dpm($unprefixedaliases);
     $allpaths = array();
     foreach ($unprefixedaliases as $val) {
       // Google Analytics stores initial slash as well, so let's prefix them.
-      $allpaths[] = md5('/' . $val);
+      $allpaths[] = md5('/'.$lang_prefix.$val); // With language prefix, if available, e.g. /en/node/55
+      if ($lang_prefix <> ''){
+        // Now, if we are counting NODE with language prefix, we also need to count the pageviews for that node without the prefix -- it could be that before it had no language prefix but it still was the same node!
+        // BUT this will not work for non-nodes, e.g. views. There we depend on the path e.g. /en/myview because it would be tricky to get a valid language prefix out of the path. E.g. /en/myview could be a path of a view where "en" does not mean the English language. In other words, while prefix before node/id does not change the page (it's the same node), with views or other custom pages the prefix may actually contain completely different content.
+        $allpaths[] = md5('/'.$val);
+        // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
+      }
     }
-    //dpm($allpaths);
+   //dpm($allpaths);
 
     // Get path counts for each of the path aliases.
     // Search hash values of path -- faster (primary key). E.g. SELECT pageviews FROM `google_analytics_counter` where pagepath_hash IN ('ee1c787bc14bec9945de3240101e919c', 'd884e66c2316317ef6294dc12aca9cef')
@@ -160,12 +195,14 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     //->condition('pagepath', array('/bg', '/node/3'), 'IN')
     ->condition('pagepath_hash', $allpaths, 'IN')
     ->execute();
+    //dpm($pathcounts);
     $sum_of_pageviews = 0;
     foreach ($pathcounts as $pathcount) {
-      //dpm($pathcount);
+     //dpm($pathcount);
+     //dpm('partial: '.$pathcount->pageviews);
       $sum_of_pageviews += $pathcount->pageviews;
     }
-    //dpm($sum_of_pageviews);
+  //dpm('sum: '.$sum_of_pageviews);
 
     cache_set('google_analytics_counter_page_' . $cacheid, $sum_of_pageviews, 'cache', CACHE_TEMPORARY);
     //dpm('UNCACHED');
@@ -243,6 +280,7 @@ function google_analytics_counter_update_node_counter() {
 
   // Record how long did this chunk take to process.
   $chunkprocessbegin = time();
+  //dpm($chunkprocessbegin);
 
   // The total number of nodes.
   $dbresult = db_select('node', 'n')
@@ -265,13 +303,15 @@ function google_analytics_counter_update_node_counter() {
   //dpm('START pointer '.$pointer);
 
   $dbresults = db_select('node', 'n')
+  //->fields('n', array('nid','language'))
   ->fields('n', array('nid'))
   //->condition('pagepath', 'node/%', 'LIKE')
   ->range($pointer, $chunk)
   ->execute();
   foreach ($dbresults as $dbresult) {
 
-    $path = 'node/' . $dbresult->nid;
+    $path = 'node/'.$dbresult->nid;
+   //dpm($path);
 
     // Get the count for this node (uncached)
     $sum_of_pageviews = google_analytics_counter_get_sum_per_path($path, FALSE);

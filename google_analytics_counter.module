@@ -222,10 +222,17 @@ function replace_google_analytics_counter_tags($str) {
  */
 function google_analytics_counter_display($path = '') {
 
+  global $language;
+
+  $lprefix = '';
+  if (@$language->prefix <> '' AND @$language->prefix <> 'und') $lprefix = (@$language->prefix).'/';
+
   if ($path == '') {
     $path = $_GET['q'];
-    //dpm($path);
+    //dpm($language);
+    $path = $lprefix.$path;
   }
+  //dpm($path);
   // Check all paths, to be sure.
   $path = check_plain($path);
 
