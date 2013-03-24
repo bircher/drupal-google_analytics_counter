@@ -154,10 +154,15 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       OR
       (sizeof($splitpath) == 2 AND $splitpath[0] == 'node' AND is_numeric($splitpath[1]))
      ){
-    //dpm($splitpath[2]);
+    if (sizeof($splitpath) == 3) {
+      $nidhere = $splitpath[2];
+    }
+    else if (sizeof($splitpath) == 2) {
+      $nidhere = $splitpath[1];
+    }
     $dbresults = db_select('node', 'n')
       ->fields('n', array('nid','language'))
-      ->condition('nid', '5', '=')
+      ->condition('nid', $nidhere, '=')
       ->execute();
     foreach ($dbresults as $dbresult) {
       //dpm($dbresult->language);
