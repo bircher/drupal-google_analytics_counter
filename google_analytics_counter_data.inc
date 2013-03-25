@@ -248,6 +248,21 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
         // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
       }
     }
+
+    // Find possible redirects for this path using redirect_load_multiple() from module Redirect http://drupal.org/project/redirect
+    if (function_exists('redirect_load_multiple')){
+      //$sources = array();
+      $redirectobjects = redirect_load_multiple(FALSE, array('redirect' => $path));
+      //dpm($redirectobjects);
+      foreach($redirectobjects as $redirectobject){
+        //$sources[] = $redirectobject->source;
+        $allpaths[] = md5('/'.$redirectobject->source);
+        //$sources[] = $redirectobject->language.'/'.$redirectobject->source;
+        $allpaths[] = md5('/'.$redirectobject->language.'/'.$redirectobject->source);
+      }
+      //dpm($sources);
+    }
+
    //dpm($allpaths);
 
     // Get path counts for each of the path aliases.
