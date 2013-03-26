@@ -134,7 +134,17 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     return variable_get('google_analytics_counter_totalhits', 0);
   }
 
-  if ($path == '' OR $path == '/') {
+
+  // Get list of allowed languages to detect front pages such as http://mydomain.tld/en
+  $langs = language_list();
+  $frontpages = array();
+  foreach($langs as $lang=>$object){
+    $frontpages[] = $lang;
+  }
+  $frontpages[] = '';
+  $frontpages[] = '/';
+  //dpm($frontpages);
+  if (in_array($path, $frontpages)) {
     // This is the home page!
     $path = variable_get('site_frontpage', 'node');
   }
