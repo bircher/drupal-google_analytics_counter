@@ -307,7 +307,7 @@ function _google_analytics_counter_path_aliases($node_path) {
   }
 
   // If this is the front page, add the base path too, and index.php for good measure. There may be other ways that the user is accessing the front page but we can't account for them all.
-  if ($node_path == drupal_get_normal_path(variable_get('site_frontpage', 'node'))) {
+  if ($node_path == variable_get('site_frontpage', 'node')) {
     $aliases[] = '';
     $aliases[] = '/';
     $aliases[] = 'index.php';
