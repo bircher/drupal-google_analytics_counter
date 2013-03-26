@@ -134,9 +134,9 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     return variable_get('google_analytics_counter_totalhits', 0);
   }
 
-  if ($path == '') {
-    // We need a path that includes the language prefix, if any. E.g. en/my/path (of /en/my/path - the initial slash will be dealt with later).
-    $path = parse_url("http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]", PHP_URL_PATH); // @TODO: Works OK on non-Apache servers?
+  if ($path == '' OR $path == '/') {
+    // This is the home page!
+    $path = variable_get('site_frontpage', 'node');
   }
 
   $path = check_plain($path); // Esp. in case function is called directly.
@@ -309,6 +309,7 @@ function _google_analytics_counter_path_aliases($node_path) {
   // If this is the front page, add the base path too, and index.php for good measure. There may be other ways that the user is accessing the front page but we can't account for them all.
   if ($node_path == drupal_get_normal_path(variable_get('site_frontpage', 'node'))) {
     $aliases[] = '';
+    $aliases[] = '/';
     $aliases[] = 'index.php';
   }
 
