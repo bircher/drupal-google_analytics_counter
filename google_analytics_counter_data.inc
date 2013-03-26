@@ -134,8 +134,14 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     return variable_get('google_analytics_counter_totalhits', 0);
   }
 
+  $path = check_plain($path); // Esp. in case function is called directly.
+
+  // Remove initial slash, if any.
+  if (substr($path, 0, 1) == '/') $path = substr($path, 1);
+  //dpm($path);
 
   // Get list of allowed languages to detect front pages such as http://mydomain.tld/en
+  // Must come after the possible initial slash is removed!
   $langs = language_list();
   $frontpages = array();
   foreach($langs as $lang=>$object){
@@ -148,12 +154,6 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     // This is the home page!
     $path = variable_get('site_frontpage', 'node');
   }
-
-  $path = check_plain($path); // Esp. in case function is called directly.
-
-  // Remove initial slash, if any.
-  if (substr($path, 0, 1) == '/') $path = substr($path, 1);
-  //dpm($path);
 
   //If it's a node we'll distinguish the language part of it, if any. Either format en/node/55 or node/55.
   $splitpath = explode('/', $path);
