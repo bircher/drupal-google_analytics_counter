@@ -141,7 +141,7 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
   //dpm($path);
 
   // Get list of allowed languages to detect front pages such as http://mydomain.tld/en
-  // Must come after the possible initial slash is removed!
+  // Must come AFTER the possible initial slash is removed!
   $langs = language_list();
   $frontpages = array();
   foreach($langs as $lang=>$object){
@@ -157,7 +157,7 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
 
   //If it's a node we'll distinguish the language part of it, if any. Either format en/node/55 or node/55.
   $splitpath = explode('/', $path);
- //dpm($splitpath);
+  //dpm($splitpath);
   $lang_prefix = '';
   if (
       (sizeof($splitpath) == 3 AND strlen($splitpath[0]) == 2 AND $splitpath[1] == 'node' AND is_numeric($splitpath[2]))
@@ -186,8 +186,8 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       break; // Is just 1 result anyway.
     }
   }
- //dpm('detected NODE path: '.$path);
- //dpm('detected NODE prefix: '.$lang_prefix);
+  //dpm('detected NODE path: '.$path);
+  //dpm('detected NODE prefix: '.$lang_prefix);
 
   //Now if it's a node but has a prefixed or unprefixed alias, e.g. en/my/path or my/path, we should also try to determine if it's a node and then count it's node/nid with it!
   if ($lang_prefix == ''){
@@ -205,8 +205,8 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       }
     }
   }
- //dpm('detected ALIAS path: '.$path);
- //dpm('detected ALIAS prefix: '.$lang_prefix);
+  //dpm('detected ALIAS path: '.$path);
+  //dpm('detected ALIAS prefix: '.$lang_prefix);
 
   //Now, it's also possible that it's a node alias but without prefix! E.g. my/path but in fact it's en/node/nid!
   if ($lang_prefix == ''){
@@ -230,17 +230,16 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       }
     }
   }
- //dpm('detected NODE path from ALIAS: '.$path);
- //dpm('detected NODE prefix from ALIAS: '.$lang_prefix);
+  //dpm('detected NODE path from ALIAS: '.$path);
+  //dpm('detected NODE prefix from ALIAS: '.$lang_prefix);
 
+  // All right, finally we can calculate the sum of pageviews. This process is cached.
   $cacheid = md5($lang_prefix.$path);
   if ($cache = cache_get('google_analytics_counter_page_' . $cacheid) AND $cacheon) {
     $sum_of_pageviews = $cache->data;
     //dpm('CACHED');
   }
   else {
-    // Do your expensive calculations here, and populate $my_data
-
     // Get pageviews for this path and all its aliases.
     // NOTE: Here $path does NOT have an initial slash because it's coming from either check_plain($_GET['q']) (block) or from a tag like [gac|node/N].
     $unprefixedaliases = _google_analytics_counter_path_aliases($path);
@@ -273,7 +272,7 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       //dpm($sources);
     }
 
-   //dpm($allpaths);
+    //dpm($allpaths);
 
     // Get path counts for each of the path aliases.
     // Search hash values of path -- faster (primary key). E.g. SELECT pageviews FROM `google_analytics_counter` where pagepath_hash IN ('ee1c787bc14bec9945de3240101e919c', 'd884e66c2316317ef6294dc12aca9cef')
@@ -283,20 +282,20 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     //->condition('pagepath', array('/bg', '/node/3'), 'IN')
     ->condition('pagepath_hash', $allpaths, 'IN')
     ->execute();
-   //dpm($pathcounts);
+    //dpm($pathcounts);
     $sum_of_pageviews = 0;
     foreach ($pathcounts as $pathcount) {
-     //dpm($pathcount);
+    //dpm($pathcount);
     //dpm('partial: '.$pathcount->pageviews);
       $sum_of_pageviews += $pathcount->pageviews;
     }
-  //dpm('sum: '.$sum_of_pageviews);
+    //dpm('sum: '.$sum_of_pageviews);
 
     cache_set('google_analytics_counter_page_' . $cacheid, $sum_of_pageviews, 'cache', CACHE_TEMPORARY);
     //dpm('UNCACHED');
   }
 
- //dpm('total sum: '.$sum_of_pageviews);
+  //dpm('total sum: '.$sum_of_pageviews);
   return $sum_of_pageviews;
 }
 
