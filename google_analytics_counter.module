@@ -13,6 +13,16 @@ module_load_include('inc', 'google_analytics_counter', 'google_analytics_counter
 module_load_include('inc', 'google_analytics_counter', 'google_analytics_counter_auth');
 
 /**
+ * Implements hook_views_api().
+ */
+function google_analytics_counter_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'google_analytics_counter') . '/views',
+  );
+}
+
+/**
  * Valid permissions for this module
  * @return array An array of valid permissions for the test_module module
  */
@@ -264,7 +274,7 @@ function google_analytics_counter_cron() {
   }
 
   // Defaults to an hourly interval. Of course, cron has to be running at least hourly for this to work.
-  $interval = 60*variable_get('google_analytics_counter_cron_interval', 60); // $interval must contain value in seconds.
+  $interval = 60*variable_get('google_analytics_counter_cron_interval', 30); // $interval must contain value in seconds.
   // We don't want to act every time cron runs (which could be every minute) so keep a time for the next run in a variable.
   if (REQUEST_TIME >= variable_get('google_analytics_counter_cron_next_execution', 0)) {
 
@@ -273,8 +283,8 @@ function google_analytics_counter_cron() {
 
     // Retrieve path with counts from Google Analytics into a local table.
     google_analytics_counter_update_path_counts();
-    // Now also update the node_counter table from the local table with the GA data.
-    google_analytics_counter_update_node_counter();
+    // Now also update the storage table from the local table with the GA data.
+    google_analytics_counter_update_storage();
   }
 
 }
@@ -316,6 +326,20 @@ function google_analytics_counter_details() {
   $num_of_results = $dbresult->rowCount();
   $result .= t('<br />Number of paths currently stored in local database table: %num_of_results. This table is initially built and then regularly updated during cron runs.', array('%num_of_results' => number_format($num_of_results)));
 
+  $result .= t('<p>Total number of nodes on this site: %google_analytics_counter_totalnodes.', array('%google_analytics_counter_totalnodes' => check_plain(number_format(variable_get('google_analytics_counter_totalnodes', 0)))));
+  if(variable_get('google_analytics_counter_storage', '0') == 0){
+    $dbresult = db_select('node_counter', 'nc')
+      ->fields('nc')
+      ->execute();
+  }
+  else {
+    $dbresult = db_select('google_analytics_counter_storage', 'gacs')
+      ->fields('gacs')
+      ->execute();
+  }
+  $num_of_results = $dbresult->rowCount();
+  $result .= t('<br />Number of nodes with known pageview counts on this site: %num_of_results.', array('%num_of_results' => check_plain(number_format($num_of_results))));
+
   $apicalls = variable_get('google_analytics_counter_dayquota', array(0, 0));
   $result .= t('<p>Number of requests made to Google Analytics: %apicalls1. Only calls made by this module are counted here. Other modules and apps may be making more requests. ', array('%apicalls1' => check_plain(number_format($apicalls[1]))));
   $remainingcalls = variable_get('google_analytics_counter_api_dayquota', 10000)-$apicalls[1];
@@ -334,19 +358,12 @@ function google_analytics_counter_details() {
   }
   $result .= t('The current 24-hour period ends in: %google_analytics_counter_sec2hms.', array('%google_analytics_counter_sec2hms' => check_plain(google_analytics_counter_sec2hms($temp))));
 
-  $result .= t('<p>Total number of nodes on this site: %google_analytics_counter_totalnodes.', array('%google_analytics_counter_totalnodes' => check_plain(number_format(variable_get('google_analytics_counter_totalnodes', 0)))));
-  $dbresult = db_select('node_counter', 'nc')
-  ->fields('nc')
-  ->execute();
-  $num_of_results = $dbresult->rowCount();
-  $result .= t('<br />Number of nodes with known pageview counts on this site: %num_of_results.', array('%num_of_results' => check_plain(number_format($num_of_results))));
-
   $temp = variable_get('google_analytics_counter_chunk_process_time', 0) + variable_get('google_analytics_counter_chunk_node_process_time', 0);
   if ($temp < 0) {
     $temp = 0;
   }
-  $result .= t('<p>The most recent retrieval of %google_analytics_counter_chunk_to_fetch paths from Google Analytics and node counts from its local mirror took %google_analytics_counter_sec2hms (%google_analytics_counter_chunk_process_time+%google_analytics_counter_chunk_node_process_times). ', array('%google_analytics_counter_chunk_to_fetch' => check_plain(number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0))), '%google_analytics_counter_sec2hms' => check_plain(google_analytics_counter_sec2hms($temp)), '%google_analytics_counter_chunk_process_time' => check_plain(variable_get('google_analytics_counter_chunk_process_time', 0)), '%google_analytics_counter_chunk_node_process_time' => check_plain(variable_get('google_analytics_counter_chunk_node_process_time', 0))));
-  $temp = variable_get('google_analytics_counter_cron_next_execution', 60*variable_get('google_analytics_counter_cron_interval', 60))-REQUEST_TIME;
+  $result .= t('<br/>The most recent retrieval of %google_analytics_counter_chunk_to_fetch paths from Google Analytics and node counts from its local mirror took %google_analytics_counter_sec2hms (%google_analytics_counter_chunk_process_time+%google_analytics_counter_chunk_node_process_times). ', array('%google_analytics_counter_chunk_to_fetch' => check_plain(number_format(variable_get('google_analytics_counter_chunk_to_fetch', 0))), '%google_analytics_counter_sec2hms' => check_plain(google_analytics_counter_sec2hms($temp)), '%google_analytics_counter_chunk_process_time' => check_plain(variable_get('google_analytics_counter_chunk_process_time', 0)), '%google_analytics_counter_chunk_node_process_time' => check_plain(variable_get('google_analytics_counter_chunk_node_process_time', 0))));
+  $temp = variable_get('google_analytics_counter_cron_next_execution', 60*variable_get('google_analytics_counter_cron_interval', 30))-REQUEST_TIME;
   if ($temp < 0) {
     $temp = 0;
   }

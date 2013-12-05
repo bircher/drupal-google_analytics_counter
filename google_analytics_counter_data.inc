@@ -248,31 +248,22 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
     foreach ($unprefixedaliases as $val) {
       // Google Analytics stores initial slash as well, so let's prefix them.
       $allpaths[] = md5('/'.$lang_prefix.$val); // With language prefix, if available, e.g. /en/node/55
-     //dpm('/'.$lang_prefix.$val);
       if ($lang_prefix <> ''){
         // Now, if we are counting NODE with language prefix, we also need to count the pageviews for that node without the prefix -- it could be that before it had no language prefix but it still was the same node!
         // BUT this will not work for non-nodes, e.g. views. There we depend on the path e.g. /en/myview because it would be tricky to get a valid language prefix out of the path. E.g. /en/myview could be a path of a view where "en" does not mean the English language. In other words, while prefix before node/id does not change the page (it's the same node), with views or other custom pages the prefix may actually contain completely different content.
         $allpaths[] = md5('/'.$val);
-       //dpm('/'.$val);
-        // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
+       // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
       }
     }
 
     // Find possible redirects for this path using redirect_load_multiple() from module Redirect http://drupal.org/project/redirect
     if (function_exists('redirect_load_multiple')){
-      //$sources = array();
       $redirectobjects = redirect_load_multiple(FALSE, array('redirect' => $path));
-      //dpm($redirectobjects);
       foreach($redirectobjects as $redirectobject){
-        //$sources[] = $redirectobject->source;
         $allpaths[] = md5('/'.$redirectobject->source);
-        //$sources[] = $redirectobject->language.'/'.$redirectobject->source;
         $allpaths[] = md5('/'.$redirectobject->language.'/'.$redirectobject->source);
       }
-      //dpm($sources);
     }
-
-    //dpm($allpaths);
 
     // Get path counts for each of the path aliases.
     // Search hash values of path -- faster (primary key). E.g. SELECT pageviews FROM `google_analytics_counter` where pagepath_hash IN ('ee1c787bc14bec9945de3240101e919c', 'd884e66c2316317ef6294dc12aca9cef')
@@ -362,11 +353,20 @@ function google_analytics_counter_report_data($params = array(), $cache_options 
 
 
 /**
- * Get pageviews for nodes and write them to Drupal core table node_counter. This function is triggered by hook_cron().
+ * Get pageviews for nodes and write them either to the Drupal core table node_counter, or to the google_analytics_counter_storage table. This function is triggered by hook_cron().
  */
-function google_analytics_counter_update_node_counter() {
+function google_analytics_counter_update_storage() {
 
-  // Record how long did this chunk take to process.
+  if(variable_get('google_analytics_counter_storage', '0') == 0){
+    // Using core node_counter table.
+    $storage = 'node_counter';
+  }
+  else {
+    // Using table google_analytics_counter_storage.
+    $storage = 'google_analytics_counter_storage';
+  }
+
+    // Record how long did this chunk take to process.
   $chunkprocessbegin = time();
   //dpm($chunkprocessbegin);
 
@@ -407,15 +407,25 @@ function google_analytics_counter_update_node_counter() {
     // Don't write zeroes.
     if ($sum_of_pageviews == 0) continue;
 
-    // Write the count to Drupal core table node_counter
-    db_merge('node_counter')
-    ->key(array('nid' => $dbresult->nid))
-    ->fields(array(
-      'daycount' => 0,
-      'totalcount' => $sum_of_pageviews,
-      'timestamp' => REQUEST_TIME,
-      ))
-    ->execute();
+    // Write the count to the current storage table
+    if ($storage == 'node_counter'){
+      db_merge('node_counter')
+        ->key(array('nid' => $dbresult->nid))
+        ->fields(array(
+          'daycount' => 0,
+          'totalcount' => $sum_of_pageviews,
+          'timestamp' => REQUEST_TIME,
+        ))
+        ->execute();
+    }
+    else {
+      db_merge('google_analytics_counter_storage')
+        ->key(array('nid' => $dbresult->nid))
+        ->fields(array(
+          'pageview_total' => $sum_of_pageviews,
+        ))
+        ->execute();
+    }
 
   }
 
@@ -424,7 +434,7 @@ function google_analytics_counter_update_node_counter() {
   //dpm('END pointer: '.$pointer);
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog(t('Google Analytics Counter'), t('Attempted updating %dbresults records in node_counter from Google Analytics data %first-%second.', array('%dbresults' => $dbresults->rowCount(), '%first' => ($pointer-$chunk+1), '%second' => ($pointer-$chunk+$dbresults->rowCount()))), NULL, WATCHDOG_INFO);
+  watchdog(t('Google Analytics Counter'), t('Attempted updating %dbresults records in table '.$storage.' from Google Analytics data %first-%second.', array('%dbresults' => $dbresults->rowCount(), '%first' => ($pointer-$chunk+1), '%second' => ($pointer-$chunk+$dbresults->rowCount()))), NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
   if ($pointer < $resultcount) {
