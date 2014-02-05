@@ -88,7 +88,7 @@ function google_analytics_counter_admin($form, &$form_state) {
     ),
     '#default_value' => $default_value, // For backward compatibility keeping it on the deprecated option.
     '#required' => TRUE,
-    #'#description' => t("")
+    //'#description' => t("")
   );
   // Disable the Statistics option if the module is off. And force the own database table option.
   if (!module_exists('statistics')){

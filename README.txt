@@ -1,7 +1,7 @@
 Google Analytics Counter is a scalable, lightweight page view counter drawing on data collected by Google Analytics.
 
-Installation, demo and tips are at http://vacilando.net/gac
 Drupal project page is at http://drupal.org/project/issues/google_analytics_counter
+Installation, demo and tips are at http://vacilando.org/en/article/google-analytics-counter
 If you encounter a problem or need support, see http://drupal.org/project/issues/google_analytics_counter
 
 Author: Tomas Fulopp (Vacilando)

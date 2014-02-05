@@ -24,7 +24,7 @@ function google_analytics_counter_update_path_counts() {
   }
   //dpm($dayquota);
   // Are we over the GA API limit?
-  $maxdailyrequests = variable_get('google_analytics_counter_api_dayquota', 10000); // see http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
+  $maxdailyrequests = variable_get('google_analytics_counter_api_dayquota', 10000); // See http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
   if ($dayquota[1] > $maxdailyrequests) {
     watchdog(t('Google Analytics Counter'), t('Google Analytics API quota of %maxdailyrequests requests has been reached. Will NOT fetch data from Google Analytics for the next %dayquota seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', array('%maxdailyrequests' => check_plain($maxdailyrequests), '%dayquota' => check_plain(($dayquota[0]+86400-REQUEST_TIME)))), NULL, WATCHDOG_ERROR);
     return;

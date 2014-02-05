@@ -8,7 +8,7 @@
  */
 
 /**
- * Implements hook_views_data().
+ * Implements hook_views_data()
  */
 function google_analytics_counter_views_data() {
   $data = array();

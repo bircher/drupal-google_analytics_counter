@@ -29,10 +29,10 @@ function google_analytics_counter_views_api() {
 function google_analytics_counter_permission() {
   return array(
     /* Perhaps for later:
-    'access google analytics counter' => array(
-      'title' => t('Access Google Analytics Counter'),
-      'description' => t('Set roles that may access the output of Google Analytics Counter.'),
-      ),
+      'access google analytics counter' => array(
+        'title' => t('Access Google Analytics Counter'),
+        'description' => t('Set roles that may access the output of Google Analytics Counter.'),
+        ),
     */
   'administer google analytics counter' => array(
     'title' => t('Administer Google Analytics Counter'),

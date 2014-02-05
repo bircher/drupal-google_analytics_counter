@@ -7,13 +7,13 @@
  * Most of the Google Analytics authentication process is taken over from http://drupal.org/project/google_analytics_reports because all we need here is its Google Analytics API submodule but it is not possible to use that separately. Moreover, Google Analytics Reports requires also module Chart which is completely unrelated to this module.
  */
 
-/* Number of seconds in an hour. */
+/* Seconds in an hour. */
 define('GOOGLE_ANALYTICS_COUNTER_HOUR', 60 * 60);
 
-/* Number of seconds in a day. */
+/* Seconds in a day. */
 define('GOOGLE_ANALYTICS_COUNTER_DAY', GOOGLE_ANALYTICS_COUNTER_HOUR * 24);
 
-/* Number of seconds in a week. */
+/* Seconds in a week. */
 define('GOOGLE_ANALYTICS_COUNTER_WEEK', GOOGLE_ANALYTICS_COUNTER_DAY * 7);
 
 /**
