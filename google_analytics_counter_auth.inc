@@ -125,8 +125,8 @@ function google_analytics_counter_auth_admin() {
     );
     $form['setup']['google_analytics_counter_hd'] = array(
       '#type' => 'textfield',
-      '#title' => t('Google Apps for Business Domain (optional)'),
-      '#description' => t('Provide the domain name (example.com) if your domain is registered with Google Apps for Business. Otherwise, leave blank.'),
+      '#title' => t('Google Analytics domain'),
+      '#description' => t('Select which domain tracked by Google Analytics should serve as a source for the statistical data.'),
       '#default_value' => variable_get('google_analytics_counter_hd', ''),
     );
     $form['setup']['setup_submit'] = array(
