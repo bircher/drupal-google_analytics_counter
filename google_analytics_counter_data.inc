@@ -357,7 +357,7 @@ function google_analytics_counter_report_data($params = array(), $cache_options 
  */
 function google_analytics_counter_update_storage() {
 
-  if(variable_get('google_analytics_counter_storage', '0') == 0){
+  if(variable_get('google_analytics_counter_storage', 0) == 0 && module_exists('statistics')){ // See also https://www.drupal.org/node/2275575
     // Using core node_counter table.
     $storage = 'node_counter';
   }

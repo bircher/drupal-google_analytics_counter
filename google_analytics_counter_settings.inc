@@ -72,9 +72,9 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#required' => TRUE,
     );
 
-  // If the Statistics module is off, so force the own table option.
+  // If the statistics module is off, the own table storage MUST be used. See also https://www.drupal.org/node/2275575
   if (!module_exists('statistics')){
-    $default_value = variable_get('google_analytics_counter_storage', '1');
+    $default_value = 1;
   }
   else {
     $default_value = variable_get('google_analytics_counter_storage', '0');
@@ -83,7 +83,7 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#type' => 'radios',
     '#title' => t('Data storage location'),
     '#options' => array(
-      '1' => t('Use this module\'s database table. This is the preferred option.'),
+      '1' => t('Use this module\'s database table. This is the recommended option.'),
       '0' => t('Overwrite total pageview values in table node_counter provided by the core module Statistics. If the Statistics module is disabled, this option gets deactivated as well. Only really useful for backward compatibility on sites that previously used version 7.2 or older and do not wish to change configuration (e.g. views) immediately. This option is deprecated.'),
     ),
     '#default_value' => $default_value, // For backward compatibility keeping it on the deprecated option.

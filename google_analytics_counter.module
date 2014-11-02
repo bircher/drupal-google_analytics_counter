@@ -327,7 +327,8 @@ function google_analytics_counter_details() {
   $result .= t('<br />Number of paths currently stored in local database table: %num_of_results. This table is initially built and then regularly updated during cron runs.', array('%num_of_results' => number_format($num_of_results)));
 
   $result .= t('<p>Total number of nodes on this site: %google_analytics_counter_totalnodes.', array('%google_analytics_counter_totalnodes' => check_plain(number_format(variable_get('google_analytics_counter_totalnodes', 0)))));
-  if(variable_get('google_analytics_counter_storage', '0') == 0){
+
+  if(variable_get('google_analytics_counter_storage', 0) == 0 && module_exists('statistics')){ // See also https://www.drupal.org/node/2275575
     $dbresult = db_select('node_counter', 'nc')
       ->fields('nc')
       ->execute();
