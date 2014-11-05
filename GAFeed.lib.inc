@@ -225,7 +225,12 @@ class GAFeed {
     }
     $headers = array();
 
-    $this->response = drupal_http_request($url, $headers, $method, $data);
+    $options = array(
+      'headers' => $headers,
+      'method' => $method,
+      'data' => $data,
+    );
+    $this->response = drupal_http_request($url, $options);
 
     if ($this->response->code == '200') {
       $this->results = json_decode($this->response->data);
