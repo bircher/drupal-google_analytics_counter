@@ -79,8 +79,8 @@ function google_analytics_counter_update_path_counts() {
         db_merge('google_analytics_counter')
         ->key(array('pagepath_hash' => md5($val['pagePath'])))
         ->fields(array(
-          'pagepath' => $val['pagePath'],
-          'pageviews' => $val['pageviews'],
+          'pagepath' => check_plain($val['pagePath']), // Added check_plain; see https://www.drupal.org/node/2381703
+          'pageviews' => check_plain($val['pageviews']), // Added check_plain; see https://www.drupal.org/node/2381703
           ))
         ->execute();
 
