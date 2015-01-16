@@ -126,7 +126,8 @@ function google_analytics_counter_update_path_counts() {
  */
 function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
 
- //dpm('==============================================================');
+  //dpm('==============================================================');
+  //dpm('requested path: '.$path);
 
   // Recognize special path 'all' to get the sum of all pageviews for the profile.
   if ($path == 'all') {
@@ -156,7 +157,8 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
   }
 
   //If it's a node we'll distinguish the language part of it, if any. Either format en/node/55 or node/55.
-  $splitpath = explode('/', $path);
+  $path_no_slashes_at_ends = trim($path, '/');
+  $splitpath = explode('/', $path_no_slashes_at_ends);
   //dpm($splitpath);
   $lang_prefix = '';
   if (
@@ -185,9 +187,9 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
       }
       break; // Is just 1 result anyway.
     }
+    //dpm('detected NODE path: '.$path);
+    //dpm('detected NODE prefix: '.$lang_prefix);
   }
-  //dpm('detected NODE path: '.$path);
-  //dpm('detected NODE prefix: '.$lang_prefix);
 
   //Now if it's a node but has a prefixed or unprefixed alias, e.g. en/my/path or my/path, we should also try to determine if it's a node and then count it's node/nid with it!
   if ($lang_prefix == ''){
@@ -203,14 +205,17 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
         $path = $nodepath;
         $lang_prefix = $lang.'/';
       }
+      //dpm('detected ALIAS path: '.$path);
+      //dpm('detected ALIAS prefix: '.$lang_prefix);
     }
   }
-  //dpm('detected ALIAS path: '.$path);
-  //dpm('detected ALIAS prefix: '.$lang_prefix);
 
   //Now, it's also possible that it's a node alias but without prefix! E.g. my/path but in fact it's en/node/nid!
   if ($lang_prefix == ''){
-    $nodepath = drupal_lookup_path('source', $path);
+    $path_no_slashes_at_ends = trim($path, '/');
+    $nodepath = drupal_lookup_path('source', $path_no_slashes_at_ends);
+    //dpm('path_no_slashes_at_ends: '.$path_no_slashes_at_ends);
+    //dpm('nodepath: '.$nodepath);
     if ($nodepath !== FALSE) {
       $path = $nodepath;
       $splitnodepath = explode('/', $nodepath);
@@ -228,42 +233,89 @@ function google_analytics_counter_get_sum_per_path($path, $cacheon = TRUE) {
         }
         //$lang_prefix = $lang.'/';
       }
+      //dpm('detected NODE path from ALIAS: '.$path);
+      //dpm('detected NODE prefix from ALIAS: '.$lang_prefix);
     }
   }
-  //dpm('detected NODE path from ALIAS: '.$path);
-  //dpm('detected NODE prefix from ALIAS: '.$lang_prefix);
+
+  // But it also could be a redirect path!
+  if (function_exists('redirect_load_by_source')){
+    $path_no_slashes_at_ends = trim($path, '/');
+    $redirect_object = redirect_load_by_source($path_no_slashes_at_ends, $GLOBALS['language']->language, drupal_get_query_parameters());
+    //dpm($redirect_object);
+    if (is_object($redirect_object)){
+      //dpm('gotten from redirect object: '.$redirect_object->redirect);
+      if (is_string($redirect_object->redirect)){
+        $path = $redirect_object->redirect;
+      }
+      if (is_string($redirect_object->language)){
+        $lang_prefix = $redirect_object->language.'/';
+      }
+      //dpm('detected NODE path from REDIRECT: '.$path);
+      //dpm('detected NODE prefix from REDIRECT: '.$lang_prefix);
+    }
+  }
 
   // All right, finally we can calculate the sum of pageviews. This process is cached.
   $cacheid = md5($lang_prefix.$path);
+  // $cacheon = FALSE; // Useful for debugging.
   if ($cache = cache_get('google_analytics_counter_page_' . $cacheid) AND $cacheon) {
     $sum_of_pageviews = $cache->data;
     //dpm('CACHED');
   }
   else {
     // Get pageviews for this path and all its aliases.
-    // NOTE: Here $path does NOT have an initial slash because it's coming from either check_plain($_GET['q']) (block) or from a tag like [gac|node/N].
-    $unprefixedaliases = _google_analytics_counter_path_aliases($path);
-   //dpm($unprefixedaliases);
+    /*
+     * NOTE: Here $path does NOT have an initial slash because it's coming from either check_plain($_GET['q']) (block) or from a tag like [gac|node/N].
+     * Remove a trailing slash (e.g. from node/3/) otherwise _google_analytics_counter_path_aliases() does not find anything.
+     */
+    $path_no_slashes_at_ends = trim($path, '/');
+    //dpm('path_no_slashes_at_ends: '.$path_no_slashes_at_ends);
+    $unprefixedaliases = _google_analytics_counter_path_aliases($path_no_slashes_at_ends);
+    //dpm('unprefixedaliases:');
+    //dpm($unprefixedaliases);
     $allpaths = array();
+    $allpaths_dpm = array();
     foreach ($unprefixedaliases as $val) {
       // Google Analytics stores initial slash as well, so let's prefix them.
       $allpaths[] = md5('/'.$lang_prefix.$val); // With language prefix, if available, e.g. /en/node/55
+      $allpaths_dpm[] = '/'.$lang_prefix.$val;
+      // And its variant with trailing slash (https://www.drupal.org/node/2396057)
+      $allpaths[] = md5('/'.$lang_prefix.$val.'/'); // With language prefix, if available, e.g. /en/node/55
+      $allpaths_dpm[] = '/'.$lang_prefix.$val.'/';
       if ($lang_prefix <> ''){
         // Now, if we are counting NODE with language prefix, we also need to count the pageviews for that node without the prefix -- it could be that before it had no language prefix but it still was the same node!
         // BUT this will not work for non-nodes, e.g. views. There we depend on the path e.g. /en/myview because it would be tricky to get a valid language prefix out of the path. E.g. /en/myview could be a path of a view where "en" does not mean the English language. In other words, while prefix before node/id does not change the page (it's the same node), with views or other custom pages the prefix may actually contain completely different content.
         $allpaths[] = md5('/'.$val);
-       // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
+        $allpaths_dpm[] = '/'.$val;
+        // And its variant with trailing slash (https://www.drupal.org/node/2396057)
+        $allpaths[] = md5('/'.$val.'/');
+        $allpaths_dpm[] = '/'.$val.'/';
+        // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
       }
     }
 
     // Find possible redirects for this path using redirect_load_multiple() from module Redirect http://drupal.org/project/redirect
     if (function_exists('redirect_load_multiple')){
-      $redirectobjects = redirect_load_multiple(FALSE, array('redirect' => $path));
+      $path_no_slashes_at_ends = trim($path, '/');
+      $redirectobjects = redirect_load_multiple(FALSE, array('redirect' => $path_no_slashes_at_ends));
       foreach($redirectobjects as $redirectobject){
         $allpaths[] = md5('/'.$redirectobject->source);
+        $allpaths_dpm[] = '/'.$redirectobject->source;
+        // And its variant with trailing slash (https://www.drupal.org/node/2396057)
+        $allpaths[] = md5('/'.$redirectobject->source.'/');
+        $allpaths_dpm[] = '/'.$redirectobject->source.'/';
         $allpaths[] = md5('/'.$redirectobject->language.'/'.$redirectobject->source);
+        $allpaths_dpm[] = '/'.$redirectobject->language.'/'.$redirectobject->source;
+        // And its variant with trailing slash (https://www.drupal.org/node/2396057)
+        $allpaths[] = md5('/'.$redirectobject->language.'/'.$redirectobject->source.'/');
+        $allpaths_dpm[] = '/'.$redirectobject->language.'/'.$redirectobject->source.'/';
       }
     }
+
+    // Very useful for debugging. In face each variant: node/NID, alias, redirect, non-node ... with or without trailing slash, with or without language ... should always give the same count (sum of counts of all path variants).
+    //dpm('allpaths_dpm:');
+    //dpm($allpaths_dpm);
 
     // Get path counts for each of the path aliases.
     // Search hash values of path -- faster (primary key). E.g. SELECT pageviews FROM `google_analytics_counter` where pagepath_hash IN ('ee1c787bc14bec9945de3240101e919c', 'd884e66c2316317ef6294dc12aca9cef')
