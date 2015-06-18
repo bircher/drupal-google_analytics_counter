@@ -90,7 +90,7 @@ function google_analytics_counter_menu() {
     'access arguments' => array('administer google analytics counter'),
     'type' => MENU_LOCAL_TASK,
     'weight' => 2,
-    );
+  );
 
   $items['admin/config/system/google_analytics_counter/authentication'] = array(
     'title' => t('GA authentication'),
@@ -112,13 +112,14 @@ function google_analytics_counter_menu() {
     'weight' => 5,
     );
 
-  /* OAuth callback from Google */
-  $items['google_analytics_counter/oauth'] = array(
-    'title' => t('Google Analytics Reports OAuth Callback'),
-    'access callback' => TRUE,
-    'page callback' => 'google_analytics_counter_oauth_callback',
+  $items['admin/config/system/google_analytics_counter/dashboard/reset'] = array(
+    'title' => t('Reset module settings'),
+    'description' => t('Reset all settings of this module. Sometimes useful if in trouble with OAuth authentication.'),
+    'page callback' => 'google_analytics_counter_reset',
+    'access arguments' => array('administer google analytics counter'),
     'type' => MENU_CALLBACK,
-    );
+    'weight' => 9,
+  );
 
   return $items;
 }
@@ -291,11 +292,11 @@ function google_analytics_counter_cron() {
 
 /**
  * Sets the expiry timestamp for cached queries.
- * Default is 3 days.
+ * Default is 1 day.
  * @return The UNIX timestamp to expire the query at.
  */
 function google_analytics_counter_cache_time() {
-  return time() + variable_get('google_analytics_counter_cache_length', 259200);
+  return time() + variable_get('google_analytics_counter_cache_length', GOOGLE_ANALYTICS_COUNTER_DAY);
 }
 
 /**
@@ -372,6 +373,8 @@ function google_analytics_counter_details() {
 
   $result .= t('<p>'. l(t('Run cron immediately'), 'admin/reports/status/run-cron', array('query' => array('destination' => 'admin/config/system/google_analytics_counter/dashboard'))) .'.');
 
+  $result .= t('<p>['. l(t('Reset all module settings'), 'admin/config/system/google_analytics_counter/dashboard/reset') . '. Useful in some cases, e.g. if in trouble with OAuth authentication.]');
+
   return $result;
 }
 
@@ -412,4 +415,19 @@ function google_analytics_counter_sec2hms($sec, $padHours = FALSE) {
   // done!
   return $hms . 's';
 
+}
+
+
+/**
+ * Reset all module settings by deleting its variables.
+ */
+function google_analytics_counter_reset(){
+  $query = db_select('variable', 'v')
+    ->fields('v', array('name'))
+    ->condition('name', db_like('google_analytics_counter') . '%', 'LIKE')
+    ->execute();
+  while ($variable = $query->fetchAssoc()) {
+    variable_del($variable['name']);
+  }
+  drupal_goto('admin/config/system/google_analytics_counter/dashboard');
 }
