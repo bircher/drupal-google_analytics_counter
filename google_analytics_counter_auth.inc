@@ -197,6 +197,19 @@ function google_analytics_counter_auth_admin() {
       '#description' => t('Client Secret created for the app in the Google API Console'),
       '#weight' => -8,
     );
+    $redirect_uri = variable_get('google_analytics_counter_redirect_uri', GoogleAnalyticsCounterFeed::currentUrl());
+    $form['setup']['redirect_host'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Redirect host'),
+      '#default_value' => variable_get('google_analytics_counter_redirect_host', ''),
+      '#size' => 30,
+      '#description' => t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Include schema and host, but not uri path. Example: http://example.com. Current redirect URI is %redirect_uri. Leave blank to use default (blank will work for most cases).',
+         array(
+           '%redirect_uri' => $redirect_uri,
+         )
+      ),
+      '#weight' => -7,
+    );
     $form['setup']['setup_submit'] = array(
       '#type' => 'submit',
       '#value' => t('Start setup and authorize account'),
@@ -218,6 +231,10 @@ function google_analytics_counter_auth_admin_submit($form, &$form_state) {
       $client_id = $form_state['values']['client_id'];
       $client_secret = $form_state['values']['client_secret'];
       $redirect_uri = GoogleAnalyticsCounterFeed::currentUrl();
+      if (!empty($form_state['values']['redirect_host'])) {
+        variable_set('google_analytics_counter_redirect_host', $form_state['values']['redirect_host']);
+        $redirect_uri = $form_state['values']['redirect_host'] . $_SERVER['REQUEST_URI'];
+      }
       variable_set('google_analytics_counter_client_id', $client_id);
       variable_set('google_analytics_counter_client_secret', $client_secret);
       variable_set('google_analytics_counter_redirect_uri', $redirect_uri);

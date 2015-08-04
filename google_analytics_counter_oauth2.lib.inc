@@ -85,6 +85,10 @@ class GoogleAnalyticsCounterFeed {
     }
     $url = $https ? 'https://' : 'http://';
     $url .= $_SERVER['SERVER_NAME'];
+    if ((!$https && $_SERVER['SERVER_PORT'] != '80') ||
+      ($https && $_SERVER['SERVER_PORT'] != '443')) {
+      $url .= ':' . $_SERVER['SERVER_PORT'];
+    }
     return $url . $_SERVER['REQUEST_URI'];
   }
 
