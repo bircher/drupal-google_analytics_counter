@@ -422,12 +422,6 @@ function google_analytics_counter_sec2hms($sec, $padHours = FALSE) {
  * Reset all module settings by deleting its variables.
  */
 function google_analytics_counter_reset(){
-  $query = db_select('variable', 'v')
-    ->fields('v', array('name'))
-    ->condition('name', db_like('google_analytics_counter') . '%', 'LIKE')
-    ->execute();
-  while ($variable = $query->fetchAssoc()) {
-    variable_del($variable['name']);
-  }
+  google_analytics_counter_revoke();
   drupal_goto('admin/config/system/google_analytics_counter/dashboard');
 }
