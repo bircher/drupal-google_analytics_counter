@@ -115,7 +115,7 @@ function google_analytics_counter_menu() {
   $items['admin/config/system/google_analytics_counter/dashboard/reset'] = array(
     'title' => t('Reset module settings'),
     'description' => t('Reset all settings of this module. Sometimes useful if in trouble with OAuth authentication.'),
-    'page callback' => 'google_analytics_counter_reset',
+    'page callback' => 'google_analytics_counter_confirm_reset',
     'access arguments' => array('administer google analytics counter'),
     'type' => MENU_CALLBACK,
     'weight' => 9,
@@ -378,6 +378,31 @@ function google_analytics_counter_details() {
   return $result;
 }
 
+/**
+ * Confirmation callback function for link admin/config/system/google_analytics_counter/dashboard/reset
+ *
+ */
+function google_analytics_counter_confirm_reset() {
+  // drupal_get_form is used to render the form into HTML code.
+  return drupal_get_form('google_analytics_counter_confirm_reset_form');
+}
+
+/**
+ * Configuration reset form
+ */
+function google_analytics_counter_confirm_reset_form($form_state) {
+  // Instead of building the form ourselves, we use confirm_form to automatically generate it.
+  $form = array();
+  return confirm_form($form, 'Are you sure that you wish to reset all configuration variables of module Google Analytics Counter to their default values?', 'admin/config/system/google_analytics_counter/dashboard', NULL, 'Yes', 'No');
+}
+
+/**
+ * Submit handler gets called when form is submitted, so code to be executed upon form submission goes here
+ */
+function google_analytics_counter_confirm_reset_form_submit($form, &$form_state) {
+  google_analytics_counter_reset();
+  drupal_goto('admin/config/system/google_analytics_counter/dashboard');
+}
 
 /**
  * Convert seconds to hours, minutes and seconds.
