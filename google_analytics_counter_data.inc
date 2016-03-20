@@ -26,7 +26,7 @@ function google_analytics_counter_update_path_counts() {
   // Are we over the GA API limit?
   $maxdailyrequests = variable_get('google_analytics_counter_api_dayquota', 10000); // See http://code.google.com/apis/analytics/docs/gdata/gdataDeveloperGuide.html#quota
   if ($dayquota[1] > $maxdailyrequests) {
-    watchdog(t('Google Analytics Counter'), t('Google Analytics API quota of %maxdailyrequests requests has been reached. Will NOT fetch data from Google Analytics for the next %dayquota seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', array('%maxdailyrequests' => check_plain($maxdailyrequests), '%dayquota' => check_plain(($dayquota[0]+86400-REQUEST_TIME)))), NULL, WATCHDOG_ERROR);
+    watchdog('Google Analytics Counter', t('Google Analytics API quota of %maxdailyrequests requests has been reached. Will NOT fetch data from Google Analytics for the next %dayquota seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', array('%maxdailyrequests' => check_plain($maxdailyrequests), '%dayquota' => check_plain(($dayquota[0]+86400-REQUEST_TIME)))), NULL, WATCHDOG_ERROR);
     return;
   }
 
@@ -67,7 +67,7 @@ function google_analytics_counter_update_path_counts() {
     variable_set('google_analytics_counter_dayquota', array($dayquota[0], ($dayquota[1]+1)));
 
     if (!empty($new_data->error)) { // If NULL then there is no error.
-      watchdog(t('Google Analytics Counter'), t('Problem fetching data from Google Analytics: %new_dataerror. Did you authenticate any Google Analytics profile? See <a href="/admin/config/system/google_analytics_counter/authentication">here</a>.', array('%new_dataerror' => $new_data->error)), NULL, WATCHDOG_ERROR);
+      watchdog('Google Analytics Counter', t('Problem fetching data from Google Analytics: %new_dataerror. Did you authenticate any Google Analytics profile? See <a href="/admin/config/system/google_analytics_counter/authentication">here</a>.', array('%new_dataerror' => $new_data->error)), NULL, WATCHDOG_ERROR);
       // Nothing to do; return.
       //return;
     }
@@ -103,7 +103,7 @@ function google_analytics_counter_update_path_counts() {
   $pointer += $chunk;
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog(t('Google Analytics Counter'), t('Retrieved %sizeof items from Google Analytics data for paths %first-%second.', array('%sizeof' => sizeof(@$new_data->results->rows), '%first' => ($pointer-$chunk), '%second' => ($pointer-$chunk-1+sizeof(@$new_data->results->rows)))), NULL, WATCHDOG_INFO);
+  watchdog('Google Analytics Counter', t('Retrieved %sizeof items from Google Analytics data for paths %first-%second.', array('%sizeof' => sizeof(@$new_data->results->rows), '%first' => ($pointer-$chunk), '%second' => ($pointer-$chunk-1+sizeof(@$new_data->results->rows)))), NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
   if ($pointer <= $resultcount) {
@@ -486,7 +486,7 @@ function google_analytics_counter_update_storage() {
   //dpm('END pointer: '.$pointer);
 
   //dpm('step: '.$step.' | '.$pointer . ' out of total ' .$resultcount);
-  watchdog(t('Google Analytics Counter'), t('Attempted updating %dbresults records in table '.$storage.' from Google Analytics data %first-%second.', array('%dbresults' => $dbresults->rowCount(), '%first' => ($pointer-$chunk+1), '%second' => ($pointer-$chunk+$dbresults->rowCount()))), NULL, WATCHDOG_INFO);
+  watchdog('Google Analytics Counter', t('Attempted updating %dbresults records in table '.$storage.' from Google Analytics data %first-%second.', array('%dbresults' => $dbresults->rowCount(), '%first' => ($pointer-$chunk+1), '%second' => ($pointer-$chunk+$dbresults->rowCount()))), NULL, WATCHDOG_INFO);
 
   // OK now increase or zero $step
   if ($pointer < $resultcount) {

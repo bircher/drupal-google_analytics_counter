@@ -270,7 +270,7 @@ function google_analytics_counter_cron() {
   // Set a watchdog error if there is no Google Analytics profile enabled.
   // It's a weak test but better than none.
   if (variable_get('google_analytics_counter_profile_id') == '') {
-    watchdog(t('Google Analytics Counter'), t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please '. l(t('authenticate here'), 'admin/config/system/google_analytics_counter/authentication') .'.'), NULL, WATCHDOG_ERROR);
+    watchdog('Google Analytics Counter', t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please '. l(t('authenticate here'), 'admin/config/system/google_analytics_counter/authentication') .'.'), NULL, WATCHDOG_ERROR);
     return;
   }
 
