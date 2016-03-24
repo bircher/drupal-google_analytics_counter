@@ -79,8 +79,8 @@ function google_analytics_counter_update_path_counts() {
         db_merge('google_analytics_counter')
         ->key(array('pagepath_hash' => md5($val['pagePath'])))
         ->fields(array(
-          'pagepath' => check_plain($val['pagePath']), // Added check_plain; see https://www.drupal.org/node/2381703
-          'pageviews' => check_plain($val['pageviews']), // Added check_plain; see https://www.drupal.org/node/2381703
+          'pagepath' => check_plain(utf8_encode($val['pagePath'])), // check_plain: https://www.drupal.org/node/2381703 // utf8_encode: https://www.drupal.org/node/2382319
+          'pageviews' => check_plain($val['pageviews']), // check_plain: https://www.drupal.org/node/2381703
           ))
         ->execute();
 
