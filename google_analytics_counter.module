@@ -13,6 +13,15 @@ module_load_include('inc', 'google_analytics_counter', 'google_analytics_counter
 module_load_include('inc', 'google_analytics_counter', 'google_analytics_counter_auth');
 
 /**
+* Implement admin settings validate
+*/
+function google_analytics_counter_admin_validate($form, &$form_state) {
+  if ($form_state['values']['google_analytics_counter_advanced_date_checkbox'] == 1 && strtotime($form_state['values']['google_analytics_counter_fixed_start_date']) > time()) {
+    form_set_error('google_analytics_counter_fixed_start_date', t('Your date is in the future, please select a valid static date value in the GA fixed starting date field'));
+  }
+}
+
+/**
  * Implements hook_views_api().
  */
 function google_analytics_counter_views_api() {

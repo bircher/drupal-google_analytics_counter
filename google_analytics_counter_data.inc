@@ -39,19 +39,25 @@ function google_analytics_counter_update_path_counts() {
   //dpm('START chunk '.$chunk);
   //dpm('START step '.$step);
   //dpm('START pointer '.$pointer);
+  if (variable_get('google_analytics_counter_advanced_date_checkbox') == 1) {
+    $start_date = variable_get('google_analytics_counter_fixed_start_date', '2005-01-01');
+  }else {
+    $start_date = variable_get('google_analytics_counter_variable_start_date', '2005-01-01');
+  }
 
   // The earliest valid start-date for Google Analytics is 2005-01-01.
   $request = array(
     'dimensions' => array('ga:pagePath'), // date would not be necessary for totals, but we also calculate stats of views per day, so we need it
     'metrics' => array('ga:pageviews'),
-    'start_date' => strtotime('2005-01-01'),
-      'end_date' => strtotime('tomorrow'), // Using 'tomorrow' to offset any timezone shift between the hosting and Google servers.
-      'start_index' => $pointer,
-      'max_results' => $chunk,
-      //'filters' => 'ga:pagePath==/node/3',
-      //'#start_date' => strtotime('2005-01-01'), // We want to retrieve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
-      //'sort_metric' => array('ga:date'),
-      );
+    'start_date' => strtotime($start_date),
+    'end_date' => strtotime('tomorrow'), // Using 'tomorrow' to offset any timezone shift between the hosting and Google servers.
+    'start_index' => $pointer,
+    'max_results' => $chunk,
+    //'filters' => 'ga:pagePath==/node/3',
+    //'#start_date' => strtotime('2005-01-01'), // We want to retrieve all page views for this path. The earliest valid start-date for Google Analytics is 2005-01-01.
+    //'sort_metric' => array('ga:date'),
+  );
+  //dpm($start_date);
 
   $resultcount = FALSE;
   $cachehere = array(

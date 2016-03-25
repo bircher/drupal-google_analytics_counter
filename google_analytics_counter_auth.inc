@@ -9,12 +9,14 @@
 
 /* Seconds in an hour. */
 define('GOOGLE_ANALYTICS_COUNTER_HOUR', 60 * 60);
-
 /* Seconds in a day. */
 define('GOOGLE_ANALYTICS_COUNTER_DAY', GOOGLE_ANALYTICS_COUNTER_HOUR * 24);
-
 /* Seconds in a week. */
 define('GOOGLE_ANALYTICS_COUNTER_WEEK', GOOGLE_ANALYTICS_COUNTER_DAY * 7);
+/* Seconds in a month. */
+define('GOOGLE_ANALYTICS_COUNTER_MONTH', GOOGLE_ANALYTICS_COUNTER_DAY * 31);
+/* Seconds in a year. */
+define('GOOGLE_ANALYTICS_COUNTER_YEAR', GOOGLE_ANALYTICS_COUNTER_DAY * 365);
 
 /**
  * Instantiate a new GoogleAnalyticsCounterFeed object.

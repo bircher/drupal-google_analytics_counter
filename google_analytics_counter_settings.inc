@@ -63,6 +63,7 @@ function google_analytics_counter_admin($form, &$form_state) {
   for ($weeks = 1; $weeks <= 4; $weeks++) {
     $times[] = $weeks * GOOGLE_ANALYTICS_COUNTER_WEEK;
   }
+
   $form['google_analytics_counter_cache_length'] = array(
     '#type' => 'select',
     '#title' => t('Google Analytics query cache'),
@@ -70,7 +71,71 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#options' => drupal_map_assoc($times, 'format_interval'),
     '#default_value' => variable_get('google_analytics_counter_cache_length', GOOGLE_ANALYTICS_COUNTER_DAY),
     '#required' => TRUE,
+  );
+
+  // GA starting date settings.
+  $form['google_analytics_counter_start_date'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Start date for GA queries'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $variable_date = array(
+    date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_YEAR) => t('Last 365 days'),
+    date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_MONTH) => t('Last 31 days'),
+    date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_WEEK) => t('Last 7 days'),
+    date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_DAY) => t('Last day'),
+  );
+  //dpm($variable_date);
+  $form['google_analytics_counter_start_date']['google_analytics_counter_variable_start_date'] = array(
+    '#type' => 'select',
+    '#title' => t('GA variable starting date'),
+    '#default_value' => variable_get('google_analytics_counter_variable_start_date', date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_YEAR)),
+    '#description' => t('Set a period for the GA queries. This allows you to get only the recent values from GA. For example, only for the last month.'),
+    '#options' => $variable_date,
+    //'#required' => TRUE,
+    //'#attributes' => array('disabled' => 'disabled'),
+  );
+
+  // Leaves open advanced settings panel if checkbox is active.
+  if (variable_get('google_analytics_counter_advanced_date_checkbox', 1) == 1){
+    $advanced_date_settings = FALSE;
+    $form['google_analytics_counter_start_date']['google_analytics_counter_variable_start_date']['#attributes'] = array('disabled' => TRUE);
+  }
+  else {
+    $advanced_date_settings = TRUE;
+  }
+
+  $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Override by a fixed start date'),
+    '#collapsible' => TRUE,
+    '#collapsed' => $advanced_date_settings,
+  );
+
+  if (module_exists('date_api')) {
+    $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_advanced_date_checkbox'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('<b>OVERRIDE</b>'),
+      '#default_value' => variable_get('google_analytics_counter_advanced_date_checkbox', 1),
+      '#description' => t('Select if you wish to override the above variable date with the <b>GA fixed starting date</b> below.'),
     );
+
+    $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_fixed_start_date'] = array(
+      '#type' => 'date_select',
+      '#title' => t('GA fixed starting date'),
+      '#description' => t('Set a fixed starting date for the GA queries. To retrieve all statistics, use the date when Google Analytics was launched: 2005-01-01 (this is the default option).'),
+      '#date_format' => 'Y-m-d',
+      '#default_value' => variable_get('google_analytics_counter_fixed_start_date', '2005-01-01'),
+      '#date_year_range' => '2005:now',
+      '#required' => FALSE,
+    );
+  }
+  else {
+    $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_error_date_api'] = array(
+      '#markup' => '<b style="color:red">Can\'t set a fixed Date, for this function you need install and enable the Date API module!</b>'
+    );
+  }
 
   // If the statistics module is off, the own table storage MUST be used. See also https://www.drupal.org/node/2275575
   if (!module_exists('statistics')){
