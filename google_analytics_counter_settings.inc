@@ -113,14 +113,14 @@ function google_analytics_counter_admin($form, &$form_state) {
     '#collapsed' => $advanced_date_settings,
   );
 
-  if (module_exists('date_api')) {
-    $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_advanced_date_checkbox'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('<b>OVERRIDE</b>'),
-      '#default_value' => variable_get('google_analytics_counter_advanced_date_checkbox', 1),
-      '#description' => t('Select if you wish to override the above variable date with the <b>GA fixed starting date</b> below.'),
-    );
+  $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_advanced_date_checkbox'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('<b>OVERRIDE</b>'),
+    '#default_value' => variable_get('google_analytics_counter_advanced_date_checkbox', 1),
+    '#description' => t('Select if you wish to override the above variable date with the <b>GA fixed starting date</b> below.'),
+  );
 
+  if (module_exists('date_api')) {
     $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_fixed_start_date'] = array(
       '#type' => 'date_select',
       '#title' => t('GA fixed starting date'),
@@ -133,7 +133,7 @@ function google_analytics_counter_admin($form, &$form_state) {
   }
   else {
     $form['google_analytics_counter_start_date']['google_analytics_counter_advanced_date']['google_analytics_counter_error_date_api'] = array(
-      '#markup' => '<b style="color:red">Can\'t set a fixed Date, for this function you need install and enable the Date API module!</b>'
+      '#markup' => '<b style="color:red">Can\'t set a fixed Date, for this function you need to install and enable the Date API module!</b>'
     );
   }
 
