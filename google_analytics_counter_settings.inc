@@ -82,6 +82,7 @@ function google_analytics_counter_admin($form, &$form_state) {
   );
   $variable_date = array(
     date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_YEAR) => t('Last 365 days'),
+    date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_QUARTER) => t('Last 90 days'),
     date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_MONTH) => t('Last 31 days'),
     date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_WEEK) => t('Last 7 days'),
     date('Y-m-d', REQUEST_TIME-GOOGLE_ANALYTICS_COUNTER_DAY) => t('Last day'),
