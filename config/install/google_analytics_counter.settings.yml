@@ -1,0 +1,17 @@
+cache_length: 86400
+date_cycle: 0
+dayquota:
+  - 0
+  - 0
+client_id: ''
+client_secret: ''
+redirect_uri: ''
+profile_id: 0
+redirect_host: ''
+cron_interval: 30
+storage: 0
+api_dayquota: 10000
+chunk_to_fetch: 1000
+variable_start_date: '2015-01-01'
+fixed_start_date: '2015-01-01'
+advanced_date_checkbox: 1

@@ -1,0 +1,23 @@
+google_analytics_counter.admin_settings_form_tab:
+  route_name: google_analytics_counter.admin_settings_form
+  title: 'Google Analytics Counter'
+  weight: 1
+  base_route: google_analytics_counter.admin_settings_form
+
+google_analytics_counter.admin_dashboard_form_tab:
+  route_name: google_analytics_counter.admin_dashboard_form
+  title: 'Dashboard'
+  weight: 2
+  base_route: google_analytics_counter.admin_settings_form
+
+google_analytics_counter.admin_auth_form_tab:
+  route_name: google_analytics_counter.admin_auth_form
+  title: 'GA authentication'
+  weight: 4
+  base_route: google_analytics_counter.admin_settings_form
+
+google_analytics_counter.admin_permissions_form_tab:
+  route_name: google_analytics_counter.admin_permissions_form
+  title: 'Configure access permissions'
+  weight: 5
+  base_route: google_analytics_counter.admin_settings_form

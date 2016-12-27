@@ -2,20 +2,25 @@
 
 /**
  * @file
- * Provides the Google Analytics Counter Feed object type
- * and associated methods.
+ * Provides Google Analytics Counter Feed object type and associated methods.
+ *
  * Most of the Google Analytics authentication process is taken over from
  * http://drupal.org/project/google_analytics_reports because all we need
  * here is its Google Analytics API submodule but it is not possible to use
  * that separately. Moreover, Google Analytics Reports requires also module
  * Chart which is completely unrelated to this module.
  * For use Oauth2 it's also included patch #20 from issue: "Add Support for
- * OAuth2 Authentication" in https://www.drupal.org/node/1678306
+ * OAuth2 Authentication" in https://www.drupal.org/node/1678306.
  */
 
+namespace Drupal\google_analytics_counter;
+
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use GuzzleHttp\Exception\RequestException;
+use Drupal\Component\Utility\UrlHelper;
+
 /**
- * GoogleAnalyticsCounterFeed class to authorize access to and request data
- * from the Google Analytics Core Reporting API.
+ * Authorize access and request data from Google Analytics Core Reporting API.
  */
 class GoogleAnalyticsCounterFeed {
 
@@ -40,13 +45,13 @@ class GoogleAnalyticsCounterFeed {
   public $fromCache = FALSE;
 
   // OAuth access token.
-  public $access_token;
+  public $accessToken;
 
   // OAuth refresh token.
-  public $refresh_token;
+  public $refreshToken;
 
   // OAuth expiration time.
-  public $expires_at;
+  public $expiresAt;
 
   // Host and endpoint of Google Analytics API.
   protected $host = 'www.googleapis.com/analytics/v3';
@@ -64,17 +69,18 @@ class GoogleAnalyticsCounterFeed {
    * Check if object is authenticated with Google.
    */
   public function isAuthenticated() {
-    return !empty($this->access_token);
-  }
-
-  public function __construct($token = NULL) {
-    $this->access_token = $token;
+    return !empty($this->accessToken);
   }
 
   /**
-   * Get the current page url
-   *
-   * @return String
+   * The constructor.
+   */
+  public function __construct($token = NULL) {
+    $this->accessToken = $token;
+  }
+
+  /**
+   * Get the current page url.
    */
   public static function currentUrl() {
     if (!empty($_SERVER['HTTPS'])) {
@@ -86,7 +92,8 @@ class GoogleAnalyticsCounterFeed {
     $url = $https ? 'https://' : 'http://';
     $url .= $_SERVER['SERVER_NAME'];
     if ((!$https && $_SERVER['SERVER_PORT'] != '80') ||
-      ($https && $_SERVER['SERVER_PORT'] != '443')) {
+      ($https && $_SERVER['SERVER_PORT'] != '443')
+    ) {
       $url .= ':' . $_SERVER['SERVER_PORT'];
     }
     return $url . $_SERVER['REQUEST_URI'];
@@ -94,10 +101,15 @@ class GoogleAnalyticsCounterFeed {
 
   /**
    * Create a URL to obtain user authorization.
+   *
    * The authorization endpoint allows the user to first
    * authenticate, and then grant/deny the access request.
+   *
    * @param string $client_id
+   *   Client ID for Web application from Google API Console.
+   *
    * @return string
+   *   The url to authorize.
    */
   public function createAuthUrl($client_id, $redirect_uri) {
     $params = array(
@@ -106,24 +118,26 @@ class GoogleAnalyticsCounterFeed {
       'client_id=' . urlencode($client_id),
       'scope=' . self::SCOPE,
       'access_type=offline',
-      'approval_prompt=force'
+      'approval_prompt=force',
     );
 
     $params = implode('&', $params);
     return self::OAUTH2_AUTH_URL . "?$params";
   }
 
- /**
-  * Authenticate with the Google API
-  *
-  * @param String $client_id
-  * @param String $client_secret
-  * @param String $refresh_token
-  * @return GAFeed
-  */
-  protected function fetchToken($client_id, $client_secret, $redirect_uri, $refresh_token=NULL) {
+  /**
+   * Authenticate with the Google API.
+   *
+   * @param string $client_id
+   *   Client ID for Web application from Google API Console.
+   * @param string $client_secret
+   *   Client secret for Web application from Google API Console.
+   * @param string $redirect_uri
+   *   Callback uri.
+   */
+  protected function fetchToken($client_id, $client_secret, $redirect_uri, $refresh_token = NULL) {
     if ($refresh_token) {
-     $params = array(
+      $params = array(
         'client_id=' . $client_id,
         'client_secret=' . $client_secret,
         'refresh_token=' . $refresh_token,
@@ -140,96 +154,141 @@ class GoogleAnalyticsCounterFeed {
       );
     }
 
-  $data = implode('&', $params);
+    try {
+      $client = \Drupal::httpClient();
+      $this->response = $client->post(self::OAUTH2_TOKEN_URI, array(
+        'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
+        'body' => implode('&', $params),
+      ));
+    }
+    catch (RequestException $e) {
+      $this->response = $e->getResponse();
+    }
 
-  $this->response = drupal_http_request(self::OAUTH2_TOKEN_URI, array('headers' => array('Content-Type' => 'application/x-www-form-urlencoded'), 'method' => 'POST', 'data' => $data));
-
-  if (substr($this->response->code, 0, 1) == '2') {
-    $decoded_response = json_decode($this->response->data, true);
-    $this->access_token = $decoded_response['access_token'];
-    $this->expires_at = time() + $decoded_response['expires_in'];
-    if (!$refresh_token) {
-      $this->refresh_token = $decoded_response['refresh_token'];
+    if (substr($this->response->getStatusCode(), 0, 1) == '2') {
+      $decoded_response = json_decode($this->response->getBody()
+        ->__toString(), TRUE);
+      $this->accessToken = $decoded_response['access_token'];
+      $this->expiresAt = time() + $decoded_response['expires_in'];
+      if (!$refresh_token) {
+        $this->refreshToken = $decoded_response['refresh_token'];
+      }
+    }
+    else {
+      $error_vars = array(
+        '!code' => $this->response->getStatusCode(),
+        '!message' => $this->response->getReasonPhrase(),
+        '!details' => strip_tags($this->response->getbody()->__toString()),
+      );
+      $this->error = t('Code: !code - Error: !message - Message: !details', $error_vars);
+      \Drupal::logger('Google Analytics Counter')
+        ->error('Code: !code - Error: !message - Message: !details', $error_vars);
     }
   }
-  else {
-    $error_msg = 'Code: !code - Error: !message - Message: !details';
-    $error_vars = array('!code' => $this->response->code, '!message' => $this->response->error, '!details' => strip_tags($this->response->data));
-    $this->error =  t($error_msg, $error_vars);
-    watchdog('Google Analytics Counter', $error_msg, $error_vars, WATCHDOG_ERROR);
-  }
-}
 
   /**
    * Complete the authentication process.
-   * We got here after being redirected from a successful authorization grant.
-   * Fetch the access token
    *
-   * @param String $client_id
-   * @param String $client_secret
+   * We got here after being redirected from a successful authorization grant.
+   * Fetch the access token.
+   *
+   * @param string $client_id
+   *   Client ID for Web application from Google API Console.
+   * @param string $client_secret
+   *   Client secret for Web application from Google API Console.
+   * @param string $redirect_uri
+   *   Callback uri.
    */
   public function finishAuthentication($client_id, $client_secret, $redirect_uri) {
     $this->fetchToken($client_id, $client_secret, $redirect_uri);
   }
 
   /**
-   * Begin authentication by allowing the user to grant/deny access to the Google account
+   * Redirect to Google authentication page.
    *
-   * @param String $client_id
+   * Begin authentication by allowing the user to grant/deny access to
+   * the Google account.
+   *
+   * @param string $client_id
+   *   Client ID for Web application from Google API Console.
+   * @param string $redirect_uri
+   *   Callback uri.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   A redirect header.
    */
   public function beginAuthentication($client_id, $redirect_uri) {
-    drupal_goto($this->createAuthUrl($client_id, $redirect_uri));
+    $response = new RedirectResponse($this->createAuthUrl($client_id, $redirect_uri));
+    return $response->send();
   }
 
   /**
    * Fetches a fresh access token with the given refresh token.
-   * @param String $client_id
-   * @param String $client_secret
+   *
+   * @param string $client_id
+   *   Client ID for Web application from Google API Console.
+   * @param string $client_secret
+   *   Client secret for Web application from Google API Console.
    * @param string $refresh_token
+   *   Refresh token for Web application from Google API Console.
    */
   public function refreshToken($client_id, $client_secret, $refresh_token) {
-    $this->refresh_token = $refresh_token;
+    $this->refreshToken = $refresh_token;
     $this->fetchToken($client_id, $client_secret, '', $refresh_token);
   }
 
   /**
    * OAuth step #1: Fetch request token.
-   * Revoke an OAuth2 access token or refresh token. This method will revoke the current access
-   * token, if a token isn't provided.
-   * @param string|NULL $token The token (access token or a refresh token) that should be revoked.
-   * @return boolean Returns True if the revocation was successful, otherwise False.
+   *
+   * Revoke an OAuth2 access token or refresh token. This method will revoke
+   * the current access token, if a token isn't provided.
+   *
+   * @param string|NULL $token
+   *   The token (access token or a refresh token) that should be revoked.
+   *
+   * @return bool
+   *   Returns True if the revocation was successful, otherwise False.
    */
   public function revokeToken($token = NULL) {
     if (!$token) {
-      $token = $this->refresh_token ? $this->refresh_token : $this->access_token;
+      $token = $this->refreshToken ? $this->refreshToken : $this->accessToken;
     }
 
-    $this->response = drupal_http_request(self::OAUTH2_REVOKE_URI, array('headers' => array('Content-Type' => 'application/x-www-form-urlencoded'), 'method' => 'POST', 'data' => "token=$token"));
-
-    if ($this->response->code == 200) {
-      $this->access_token = NULL;
-      return true;
+    try {
+      $client = \Drupal::httpClient();
+      $this->response = $client->post(self::OAUTH2_REVOKE_URI, array(
+        'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
+        'body' => 'token=' . $token,
+      ));
+    }
+    catch (RequestException $e) {
+      $this->response = $e->getResponse();
     }
 
-    return false;
+    if ($this->response->getStatusCode() == 200) {
+      $this->accessToken = NULL;
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
   /**
    * OAuth step #2: Authorize request token.
-   * Generate authorization token header for all requests
    *
-   * @return Array
+   * Generate authorization token header for all requests.
    */
-  public function generateAuthHeader($token=NULL) {
+  public function generateAuthHeader($token = NULL) {
     if ($token == NULL) {
-      $token = $this->access_token;
-     }
+      $token = $this->accessToken;
+    }
     return array('Authorization' => 'Bearer ' . $token);
   }
 
   /**
    * OAuth step #3: Fetch access token.
-   * Set the verifier property
+   *
+   * Set the verifier property.
    */
   public function setVerifier($verifier) {
     $this->verifier = $verifier;
@@ -252,7 +311,7 @@ class GoogleAnalyticsCounterFeed {
   /**
    * Public query method for all Core Reporting API features.
    */
-  public function query($url, $params = array(), $method = 'GET', $headers, $cache_options = array()) {
+  public function query($url, $params, $method, $headers, $cache_options = array()) {
     $params_defaults = array(
       'start-index' => 1,
       'max-results' => 1000,
@@ -262,21 +321,24 @@ class GoogleAnalyticsCounterFeed {
     // Provide cache defaults if a developer did not override them.
     $cache_defaults = array(
       'cid' => NULL,
-      'expire' => google_analytics_counter_cache_time(),
+      'expire' => GoogleAnalyticsCounterCommon::cacheTime(),
       'refresh' => FALSE,
     );
     $cache_options += $cache_defaults;
 
     // Provide a query MD5 for the cid if the developer did not provide one.
     if (empty($cache_options['cid'])) {
-      $cache_options['cid'] = 'GoogleAnalyticsCounterFeed:' . md5(serialize(array_merge($params, array($url, $method))));
+      $cache_options['cid'] = 'GoogleAnalyticsCounterFeed:' . md5(serialize(array_merge($params, array(
+        $url,
+        $method,
+      ))));
     }
 
-    $cache = cache_get($cache_options['cid']);
+    $cache = \Drupal::cache()->get($cache_options['cid']);
 
     if (!$cache_options['refresh'] && isset($cache) && !empty($cache->data)) {
-      $this->response = $cache->data;
-      $this->results = json_decode($this->response->data);
+      // $this->response = $cache;.
+      $this->results = $cache->data;
       $this->fromCache = TRUE;
     }
     else {
@@ -284,7 +346,11 @@ class GoogleAnalyticsCounterFeed {
     }
 
     if (empty($this->error)) {
-      cache_set($cache_options['cid'], $this->response, 'cache', $cache_options['expire']);
+      // @todo remove cache,use default cache('default')
+      // Don't save $this->results, because the object will lose steam resource
+      // when caching, but it will lose response.
+      \Drupal::cache()
+        ->set($cache_options['cid'], $this->results, $cache_options['expire']);
     }
 
     return (empty($this->error));
@@ -301,30 +367,33 @@ class GoogleAnalyticsCounterFeed {
 
     if (count($params) > 0) {
       if ($method == 'GET') {
-        $url .= '?' . drupal_http_build_query($params);
+        $url .= '?' . UrlHelper::buildQuery($params);
       }
       else {
-        $options['data'] = drupal_http_build_query($params);
+        $options['body'] = UrlHelper::buildQuery($params);
       }
     }
 
-    $this->response = drupal_http_request($url, $options);
+    $client = \Drupal::httpClient();
+    $this->response = $client->request($method, $url, $options);
 
-    if ($this->response->code == '200') {
-      $this->results = json_decode($this->response->data);
+    if ($this->response->getStatusCode() == '200') {
+      $this->results = json_decode($this->response->getBody()->__toString());
     }
     else {
       // Data is undefined if the connection failed.
-      if (!isset($this->response->data)) {
-        $this->response->data = '';
+      if (empty($this->response->getBody()->__toString())) {
+        // @todo check it!!! it's temp code.
+        $this->response->setBody('');
       }
       $error_vars = array(
-        '@code' => $this->response->code,
-        '@message' => $this->response->error,
-        '@details' => strip_tags($this->response->data),
+        '@code' => $this->response->getStatusCode(),
+        '@message' => $this->response->getReasonPhrase(),
+        '@details' => strip_tags($this->response->getBody()->__toString()),
       );
       $this->error = t('Code: @code, Error: @message, Message: @details', $error_vars);
-      watchdog('Google Analytics Counter', 'Code: @code, Error: @message, Message: @details', $error_vars, WATCHDOG_ERROR);
+      \Drupal::logger('Google Analytics Counter')
+        ->error('Code: @code, Error: @message, Message: @details', []);
     }
   }
 
@@ -496,7 +565,6 @@ class GoogleAnalyticsCounterFeed {
    * Addition replacements.
    */
   public function replaceData($type, $value) {
-
     switch ($type) {
       case 'userType':
         return ($value == 'New Visitor') ? t('New Visitor') : t('Returning Visitor');
@@ -514,4 +582,5 @@ class GoogleAnalyticsCounterFeed {
         return $value;
     }
   }
+
 }

@@ -1,0 +1,5 @@
+google_analytics_counter.admin_settings_form:
+  title: 'Google Analytics Counter'
+  parent: system.admin_config_system
+  description: 'Configure Google Analytics Counter module'
+  route_name: google_analytics_counter.admin_settings_form
