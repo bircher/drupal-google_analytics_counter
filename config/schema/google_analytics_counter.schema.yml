@@ -2,33 +2,23 @@ google_analytics_counter.settings:
   type: mapping
   label: Settings
   mapping:
+    cron_interval:
+      type: integer
+    chunk_to_fetch:
+      type: integer
+    api_dayquota:
+      type: integer
     cache_length:
       type: integer
-    date_cycle:
-      type: integer
-    dayquota:
-      type: mapping
+    start_date:
+      type: string
+    overwrite_statistics:
+      type: boolean
+    profile_id:
+      type: string
     client_id:
       type: string
     client_secret:
       type: string
     redirect_uri:
       type: string
-    profile_id:
-      type: integer
-    redirect_host:
-      type: string
-    cron_interval:
-      type: integer
-    storage:
-      type: integer
-    api_dayquota:
-      type: integer
-    chunk_to_fetch:
-      type: integer
-    variable_start_date:
-      type: string
-    fixed_start_date:
-      type: string
-    advanced_date_checkbox:
-      type: boolean
