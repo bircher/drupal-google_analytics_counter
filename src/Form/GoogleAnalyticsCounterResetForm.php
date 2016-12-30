@@ -51,7 +51,8 @@ class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    GoogleAnalyticsCounterCommon::revoke();
+    // TODO: reset even more settings..
+    \Drupal::service('google_analytics_counter.common')->revoke();
   }
 
 }
