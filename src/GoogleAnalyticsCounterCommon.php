@@ -6,9 +6,16 @@
 
 namespace Drupal\google_analytics_counter;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\Config;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Path\AliasManagerInterface;
+use Drupal\Core\State\StateInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Url;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 use Exception;
 
 /**
@@ -18,6 +25,96 @@ use Exception;
  */
 class GoogleAnalyticsCounterCommon {
 
+  use StringTranslationTrait;
+
+  /**
+   * The google_analytics_counter.settings config object.
+   *
+   * @var \Drupal\Core\Config\Config
+   */
+  protected $config;
+
+  /**
+   * The state where all the tokens are saved.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
+   * The database connection to save the counters.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $connection;
+
+  /**
+   * The path alias manager.
+   *
+   * @var \Drupal\Core\Path\AliasManagerInterface
+   */
+  protected $aliasManager;
+
+  /**
+   * The language manager to get all languages for to get all aliases.
+   *
+   * @var \Drupal\Core\Language\LanguageManagerInterface
+   */
+  protected $languageManager;
+
+  /**
+   * @var
+   */
+  protected $prefixes;
+
+  /**
+   * A logger instance.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
+   * Constructs an Importer object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state of the drupal site.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   A database connection for reading and writing the path counts.
+   * @param \Drupal\Core\Path\AliasManagerInterface $alias_manager
+   *   The path alias manager to find aliased resources.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, Connection $connection, AliasManagerInterface $alias_manager, LanguageManagerInterface $language, LoggerInterface $logger = NULL) {
+    $this->config = $config_factory->get('google_analytics_counter.settings');
+    $this->state = $state;
+    $this->connection = $connection;
+    $this->aliasManager = $alias_manager;
+    $this->languageManager = $language;
+    $this->logger = $logger;
+
+    $this->prefixes = [];
+    // The 'url' will return NULL when it is not a multilingual site.
+    $language_url = $config_factory->get('language.negotiation')->get('url');
+    if ($language_url) {
+      $this->prefixes = $language_url['prefixes'];
+    }
+
+  }
+
+  /**
+   * Check to make sure we are authenticated with google.
+   *
+   * @return bool
+   *   True if there is a refresh token set.
+   */
+  public function isAuthenticated() {
+    return $this->state->get('google_analytics_counter.refresh_token') != NULL;
+  }
+
   /**
    * Instantiate a new GoogleAnalyticsCounterFeed object.
    *
@@ -25,24 +122,24 @@ class GoogleAnalyticsCounterCommon {
    *   GoogleAnalyticsCounterFeed object to authorize access and request data
    *   from the Google Analytics Core Reporting API.
    */
-  public static function newGaFeed() {
-    $config = \Drupal::config('google_analytics_counter.settings');
+  public function newGaFeed() {
+    $config = $this->config;
 
-    if (\Drupal::state()->get('google_analytics_counter.access_token') && time() < \Drupal::state()->get('google_analytics_counter.expires_at')) {
+    if ($this->state->get('google_analytics_counter.access_token') && time() < $this->state->get('google_analytics_counter.expires_at')) {
       // If the access token is still valid, return an authenticated GAFeed.
-      return new GoogleAnalyticsCounterFeed(\Drupal::state()->get('google_analytics_counter.access_token'));
+      return new GoogleAnalyticsCounterFeed($this->state->get('google_analytics_counter.access_token'));
     }
-    elseif (\Drupal::state()->get('google_analytics_counter.refresh_token')) {
+    elseif ($this->state->get('google_analytics_counter.refresh_token')) {
       // If the site has an access token and refresh token, but the access
       // token has expired, authenticate the user with the refresh token.
       $client_id = $config->get('client_id');
       $client_secret = $config->get('client_secret');
-      $refresh_token = \Drupal::state()->get('google_analytics_counter.refresh_token');
+      $refresh_token = $this->state->get('google_analytics_counter.refresh_token');
 
       try {
         $gac_feed = new GoogleAnalyticsCounterFeed();
         $gac_feed->refreshToken($client_id, $client_secret, $refresh_token);
-        \Drupal::state()->setMultiple([
+        $this->state->setMultiple([
           'google_analytics_counter.access_token' => $gac_feed->accessToken,
           'google_analytics_counter.expires_at' => $gac_feed->expiresAt,
         ]);
@@ -58,23 +155,17 @@ class GoogleAnalyticsCounterCommon {
     elseif (isset($_GET['code'])) {
       // If there is no access token or refresh token and client is returned
       // to the config page with an access code, complete the authentication.
-      $client_id = $config->get('client_id');
-      $client_secret = $config->get('client_secret');
-      $redirect_uri = $config->get('redirect_uri');
-
       try {
         $gac_feed = new GoogleAnalyticsCounterFeed();
-        $gac_feed->finishAuthentication($client_id, $client_secret, $redirect_uri);
+        $gac_feed->finishAuthentication($config->get('client_id'), $config->get('client_secret'), $this->getRedirectUri());
 
-        \Drupal::state()->setMultiple([
+        $this->state->setMultiple([
           'google_analytics_counter.access_token' => $gac_feed->accessToken,
           'google_analytics_counter.expires_at' => $gac_feed->expiresAt,
           'google_analytics_counter.refresh_token' => $gac_feed->refreshToken,
         ]);
-        \Drupal::state()->delete('google_analytics_counter.redirect_uri');
+        $this->state->delete('google_analytics_counter.redirect_uri');
         drupal_set_message(t('You have been successfully authenticated.'), 'status', FALSE);
-        $redirect = new RedirectResponse($redirect_uri);
-        $redirect->send();
       }
       catch (Exception $e) {
         drupal_set_message(t("There was an authentication error. Message: %message",
@@ -83,39 +174,71 @@ class GoogleAnalyticsCounterCommon {
         return NULL;
       }
     }
-    else {
-      return NULL;
-    }
+
+    return NULL;
+
   }
 
   /**
-   * Displays the count.
+   * Get the redirect uri to redirect the google oauth request back to.
+   *
+   * @return string
+   *   The redirect Uri from the configuration or the path.
    */
-  public static function displayGaCount($path = '') {
-    if ($path == '') {
-      // We need a path that includes the language prefix, if any.
-      // E.g. en/my/path (of /en/my/path - the initial slash will be dealt with
-      // later).
-      // @TODO: Works OK on non-Apache servers?
-      $path = parse_url("http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]", PHP_URL_PATH);
-    }
-    // Check all paths, to be sure.
-    // $path = check_plain($path);
-    $block_content = '';
-    $block_content .= '<span class="google-analytics-counter">';
-    $count = self::getSumPerPath($path);
-    if ($count == '') {
-      // If unknown, for some reason.
-      // Better than t('N/A').
-      $block_content .= 0;
-    }
-    else {
-      $block_content .= $count;
-    }
-    $block_content .= '</span>';
+  public function getRedirectUri() {
 
-    return $block_content;
+    if ($this->config->get('redirect_uri')) {
+      return $this->config->get('redirect_uri');
+    }
+
+    $https = FALSE;
+    if (!empty($_SERVER['HTTPS'])) {
+      $https = $_SERVER['HTTPS'] == 'on';
+    }
+    $url = $https ? 'https://' : 'http://';
+    $url .= $_SERVER['SERVER_NAME'];
+    if ((!$https && $_SERVER['SERVER_PORT'] != '80') || ($https && $_SERVER['SERVER_PORT'] != '443')) {
+      $url .= ':' . $_SERVER['SERVER_PORT'];
+    }
+
+    return $url . Url::fromRoute('google_analytics_counter.admin_auth_form')->toString();
   }
+
+  /**
+   * Get the list of available web properties.
+   *
+   * @return array
+   */
+  public function getWebPropertiesOptions() {
+    if (!$this->isAuthenticated()) {
+      // When not authenticated, there is noting to get.
+      return [];
+    }
+
+    $feed = $this->newGaFeed();
+
+    $webprops = $feed->queryWebProperties()->results->items;
+    $profiles = $feed->queryProfiles()->results->items;
+    $options = [];
+
+    // Add optgroups for each web property.
+    if (!empty($profiles)) {
+      foreach ($profiles as $profile) {
+        $webprop = NULL;
+        foreach ($webprops as $webprop_value) {
+          if ($webprop_value->id == $profile->webPropertyId) {
+            $webprop = $webprop_value;
+            break;
+          }
+        }
+
+        $options[$webprop->name][$profile->id] = $profile->name . ' (' . $profile->id . ')';
+      }
+    }
+
+    return $options;
+  }
+
 
   /**
    * Sets the expiry timestamp for cached queries.Default is 1 day.
@@ -165,21 +288,17 @@ class GoogleAnalyticsCounterCommon {
     return $hms . 's';
   }
 
+  public function beginAuthentication() {
+    $gafeed = new GoogleAnalyticsCounterFeed();
+    $gafeed->beginAuthentication($this->config->get('client_id'), $this->getRedirectUri());
+  }
+
   /**
    * Programatically revoke token.
    */
-  public static function revoke() {
-    $gac_feed = self::newGaFeed();
-    if ($gac_feed->revokeToken()) {
-      \Drupal::state()->setMultiple([
-        'google_analytics_counter.access_token' => '',
-        'google_analytics_counter.expires_at' => '',
-        'google_analytics_counter.refresh_token' => '',
-      ]);
-      $url = '/admin/config/system/google-analytics-counter/dashboard';
-      $redirect = new RedirectResponse($url);
-      $redirect->send();
-    }
+  public function revoke() {
+    $gac_feed = $this->newGaFeed();
+    $gac_feed->revokeToken();
     \Drupal::state()->setMultiple([
       'google_analytics_counter.access_token' => '',
       'google_analytics_counter.expires_at' => '',
@@ -188,407 +307,120 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Get pageviews for nodes and write them either to the Drupal core table.
+   * Save the view cound for a given node.
    *
-   * Table: node_counter, or to the google_analytics_counter_storage.
-   * This function is triggered by hook_cron().
+   * @param integer $nid
+   *   The node id for the node of which to save the data.
    */
-  public static function updateStorage() {
-    $config = \Drupal::config('google_analytics_counter.settings');
-    if ($config->get('storage') == 0
-      && \Drupal::moduleHandler()->moduleExists('statistics')
-      // See also https://www.drupal.org/node/2275575
-    ) {
-      // Using core node_counter table.
-      $storage = 'node_counter';
-    }
-    else {
-      // Using table google_analytics_counter_storage.
-      $storage = 'google_analytics_counter_storage';
+  public function updateStorage($nid) {
+
+    // Get all the aliases for a given node id.
+    $aliases = [];
+    $path = '/node/' . $nid;
+    $aliases[] = $path;
+    foreach ($this->languageManager->getLanguages() as $language) {
+      $alias = $this->aliasManager->getAliasByPath($path, $language->getId());
+      $aliases[] = $alias;
+      if (array_key_exists($language->getId(), $this->prefixes) && $this->prefixes[$language->getId()]) {
+        $aliases[] = '/' . $this->prefixes[$language->getId()] . $path;
+        $aliases[] = '/' . $this->prefixes[$language->getId()] . $alias;
+      }
     }
 
-    // @TODO: batch the node path processing.
-    $db_results = db_select('node', 'n')
-      ->fields('n', array('nid'))
+    // Add also all versions with a trailing slash.
+    $aliases = array_merge($aliases, array_map(function ($path) {
+      return $path . '/';
+    }, $aliases));
+
+    // Look up the count via the hash of the path.
+    $aliases = array_unique($aliases);
+    $hashes = array_map('md5', $aliases);
+    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
+      ->fields('gac', array('pageviews'))
+      ->condition('pagepath_hash', $hashes, 'IN')
       ->execute();
-    foreach ($db_results as $db_result) {
-      $path = '/node/' . $db_result->nid;
-
-      // Get the count for this node (uncached).
-      $sum_of_pageviews = self::getSumPerPath($path, FALSE);
-
-      // Don't write zeroes.
-      if ($sum_of_pageviews == 0) {
-        continue;
-      }
-
-      // Write the count to the current storage table.
-      if ($storage == 'node_counter') {
-        db_merge('node_counter')
-          ->key(array('nid' => $db_result->nid))
-          ->fields(array(
-            'daycount' => 0,
-            'totalcount' => $sum_of_pageviews,
-            'timestamp' => REQUEST_TIME,
-          ))
-          ->execute();
-      }
-      else {
-        db_merge('google_analytics_counter_storage')
-          ->key(array('nid' => $db_result->nid))
-          ->fields(array(
-            'pageview_total' => $sum_of_pageviews,
-          ))
-          ->execute();
-      }
+    $sum_of_pageviews = 0;
+    foreach ($pathcounts as $pathcount) {
+      $sum_of_pageviews += $pathcount->pageviews;
     }
 
-    // @TODO: log the results..
+    // Always save the data in our table.
+    $this->connection->merge('google_analytics_counter_storage')
+      ->key(array('nid' => $nid))
+      ->fields(array(
+        'pageview_total' => $sum_of_pageviews,
+      ))
+      ->execute();
+
+    // If we selected to override the storage of the statistics module.
+    if ($this->config->get('overwrite_statistics')) {
+      $this->connection->merge('node_counter')
+        ->key(array('nid' => $nid))
+        ->fields(array(
+          'totalcount' => $sum_of_pageviews,
+          'timestamp' => REQUEST_TIME,
+        ))
+        ->execute();
+    }
 
   }
 
   /**
-   * Find how many distinct paths does Google Analytics have for this profile.
+   * Get the results from google.
    *
-   * This function is triggered by hook_cron().
+   * @param int $index
+   *   The index of the chunk to fetch so that it can be queued.
+   * @return \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed
+   *   The returned feed after the request has been made.
    */
-  public static function updatePathCounts() {
-    $config = \Drupal::config('google_analytics_counter.settings');
-
-    // Needing to stay under the Google Analytics API quota,
-    // let's count how many API retrievals were made in the last 24 hours.
-    // @todo We should better take into consideration that the quota is reset at midnight PST (note: time() always returns UTC).
-//    $dayquota = $config->get('dayquota');
-//    if (REQUEST_TIME - $dayquota[0] >= 86400) {
-//      // If last API request was more than a day ago,set monitoring time to now.
-//      $dayquota[0] = REQUEST_TIME;
-//      $dayquota[1] = 0;
-//      $config_edit->set('dayquota', array(
-//        $dayquota[0],
-//        $dayquota[1],
-//      ))
-//        ->save();
-//    }
-    // Are we over the GA API limit?
-//    $maxdailyrequests = $config->get('api_dayquota');
-//    if ($dayquota[1] > $maxdailyrequests) {
-//      \Drupal::logger('Google Analytics Counter')
-//        ->error(t('Google Analytics API quota of %maxdailyrequests requests has been reached. Will NOT fetch data from Google Analytics for the next %dayquota seconds. See <a href="/admin/config/system/google_analytics_counter">the Google Analytics Counter settings page</a> for more info.', array(
-//          '%maxdailyrequests' => SafeMarkup::checkPlain($maxdailyrequests),
-//          '%dayquota' => SafeMarkup::checkPlain(($dayquota[0] + 86400 - REQUEST_TIME)),
-//        ))->render());
-//      return;
-//    }
-
-    // The earliest valid start-date for Google Analytics is 2005-01-01.
-    $date_cycle = $config->get('date_cycle');
-    $start_date = $date_cycle == 0
-      ? strtotime('2015-01-01') : strtotime(date('Y-m-d', time())) - $date_cycle;
-
-    // @TODO: make this configurable.
-    $start_date = strtotime('-1 week');
-
-    // @TODO: paginate the results.
-    $request = array(
-      'dimensions' => array('ga:pagePath'),
+  public function getChunkedResults($index = 0) {
+    $parameters = [
+      'profile_id' => 'ga:' . $this->config->get('profile_id'),
+      'dimensions' => ['ga:pagePath'],
       // Date would not be necessary for totals, but we also calculate stats of
       // views per day, so we need it.
-      'metrics' => array('ga:pageviews'),
-      'start_date' => $start_date,
-      'end_date' => strtotime('tomorrow'),
+      'metrics' => ['ga:pageviews'],
+      'start_date' => strtotime($this->config->get('start_date')),
       // Using 'tomorrow' to offset any timezone shift
       // between the hosting and Google servers.
-//      'start_index' => $pointer,
-//      'max_results' => $chunk,
-    );
+      'end_date' => strtotime('tomorrow'),
+      'start_index' => ($this->config->get('chunk_to_fetch') * $index) + 1,
+      'max_results' => $this->config->get('chunk_to_fetch'),
+    ];
 
-    $cachehere = array(
-      'cid' => 'google_analytics_counter_' . md5(serialize($request)),
+    $cachehere = [
+      'cid' => 'google_analytics_counter_' . md5(serialize($parameters)),
       'expire' => self::cacheTime(),
       'refresh' => FALSE,
-    );
-    $new_data = @self::reportData($request, $cachehere);
-
-    // Don't write anything to google_analytics_counter if this GA data comes
-    // from cache (would be writing the same again).
-    if (!$new_data->fromCache) {
-
-      // This was a live request. Increase the GA request limit tracker.
-      // @TODO: keep track of quota.
-
-      // If NULL then there is no error.
-      if (!empty($new_data->error)) {
-        \Drupal::logger('Google Analytics Counter')
-          ->error(t('Problem fetching data from Google Analytics: %new_dataerror.Did you authenticate any Google Analytics profile? See<a href="/admin/config/system/google-analytics-counter/authentication">here</a>.',
-            array('%new_dataerror' => $new_data->error))->render()
-          );
-        // Nothing to do; return.
-      }
-      else {
-        $resultsretrieved = $new_data->results->rows;
-        foreach ($resultsretrieved as $val) {
-          // http://drupal.org/node/310085
-          db_merge('google_analytics_counter')
-            ->key(array('pagepath_hash' => md5($val['pagePath'])))
-            ->fields(array(
-              'pagepath' => SafeMarkup::checkPlain($val['pagePath']),
-              // Added check_plain; see https://www.drupal.org/node/2381703
-              'pageviews' => SafeMarkup::checkPlain($val['pageviews']),
-              // Added check_plain; see https://www.drupal.org/node/2381703
-            ))
-            ->execute();
-        }
-      }
-    }
-
-    // @TODO: log the results.
+    ];
+    return $this->reportData($parameters, $cachehere);
   }
 
   /**
-   * Calculate pageviews for one path (with any aliases).
+   * Update the path counts.
+   *
+   * This function is triggered by hook_cron().
+   *
+   * @param integer $index
+   *   The index of the chunk to fetch and update.
    */
-  protected static function getSumPerPath($path, $cacheon = TRUE) {
-    // Recognize special path 'all' to get the sum of all pageviews
-    // for the profile.
-    if ($path == 'all') {
-      return \Drupal::config('google_analytics_counter.settings')->get('totalhits');
-    }
+  public function updatePathCounts($index = 0) {
+    $feed = $this->getChunkedResults($index);
 
-    // Esp. in case function is called directly.
-    $path = SafeMarkup::checkPlain($path)->jsonSerialize();
-
-    // Get list of allowed languages to detect front pages
-    // such as http://mydomain.tld/en.
-    // Must come AFTER the possible initial slash is removed!
-    $langs = \Drupal::languageManager()->getLanguages();
-    $frontpages = array();
-    foreach ($langs as $lang => $object) {
-      $frontpages[] = $lang;
-    }
-    $frontpages[] = '';
-    $frontpages[] = '/';
-
-    if (in_array($path, $frontpages)) {
-      $path = \Drupal::config('system.site')->get('page.front');
-    }
-
-    // If it's a node we'll distinguish the language part of it, if any.
-    // Either format en/node/55 or node/55.
-    $split_path = explode('/', trim($path, '/'));
-    $lang_prefix = '';
-    if ((count($split_path) == 3 and strlen($split_path[0]) == 2
-        and $split_path[1] == 'node' and is_numeric($split_path[2]))
-      or
-      (count($split_path) == 2 and $split_path[0] == 'node' and is_numeric($split_path[1]))
-    ) {
-      if (count($split_path) == 3) {
-        $nidhere = $split_path[2];
-      }
-      else {
-        if (count($split_path) == 2) {
-          $nidhere = $split_path[1];
-        }
-      }
-      $db_results = db_select('node', 'n')
-        ->fields('n', array('nid', 'langcode'))
-        ->condition('nid', $nidhere, '=')
+    foreach ($feed->results->rows as $val) {
+      // http://drupal.org/node/310085
+      $this->connection->merge('google_analytics_counter')
+        ->key(array('pagepath_hash' => md5($val['pagePath'])))
+        ->fields(array(
+          // Escape the path see https://www.drupal.org/node/2381703
+          'pagepath' => htmlspecialchars($val['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+          'pageviews' => htmlspecialchars($val['pageviews'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        ))
         ->execute();
-      foreach ($db_results as $db_result) {
-        if ($db_result->langcode <> 'und' and $db_result->langcode <> '') {
-          $lang_prefix = $db_result->langcode;
-          // If this is a language-prefixed node we need its path without
-          // the prefix for later.
-          if (count($split_path) == 3) {
-            $path = '/' . $split_path[1] . '/' . $split_path[2];
-          }
-        }
-        // Is just 1 result anyway.
-        break;
-      }
     }
 
-    if ($lang_prefix == '') {
-      // E.g. en/view or nl/my/view or xx/view.
-      if (count($split_path) > 1 and strlen($split_path[0]) == 2 and !is_numeric($split_path[0])) {
-
-        // Now we need to find which nid does it correspond
-        // (the language prefix + the alias).
-        $without_prefix = $split_path;
-        $lang = array_shift($without_prefix);
-        $without_prefix = '/' . implode('/', $without_prefix);
-        $node_path = \Drupal::service('path.alias_manager')
-          ->getPathByAlias($without_prefix);
-        if ($node_path !== FALSE) {
-          $path = $node_path;
-          $lang_prefix = $lang;
-        }
-      }
-
-      // Now, it's also possible that it's a node alias but without prefix!
-      // E.g. my/path but in fact it's en/node/nid!
-      $node_path = \Drupal::service('path.alias_manager')
-        ->getPathByAlias($path);
-      if ($node_path !== FALSE) {
-        $path = $node_path;
-        $split_node_path = explode('/', trim($node_path, "/"));
-        if (count($split_node_path) == 2 and $split_node_path[0] == 'node' and is_numeric($split_node_path[1])) {
-          $db_results = db_select('node', 'n')
-            ->fields('n', array('nid', 'langcode'))
-            ->condition('nid', $split_node_path[1], '=')
-            ->execute();
-          foreach ($db_results as $db_result) {
-            if ($db_result->langcode <> 'und' and $db_result->langcode <> '') {
-              $lang_prefix = $db_result->langcode;
-            }
-            // Is just 1 result anyway.
-            break;
-          }
-        }
-      }
-    }
-
-    // But it also could be a redirect path!
-    // @todo The module don't has drupal 8 revision.
-    if (function_exists('redirect_load_by_source')) {
-      $path_no_slashes_at_ends = trim($path, '/');
-      $redirect_object = redirect_load_by_source($path_no_slashes_at_ends, $GLOBALS['language']->language, drupal_get_query_parameters());
-      if (is_object($redirect_object)) {
-        if (is_string($redirect_object->redirect)) {
-          $path = $redirect_object->redirect;
-        }
-        if (is_string($redirect_object->language)) {
-          $lang_prefix = $redirect_object->language;
-        }
-      }
-    }
-
-    // All right, finally we can calculate the sum of pageviews.
-    // This process is cached.
-    $cacheid = md5($lang_prefix . $path);
-    if ($cache = \Drupal::cache()
-        ->get('google_analytics_counter_page_' . $cacheid) and $cacheon
-    ) {
-      $sum_of_pageviews = $cache->data;
-    }
-    else {
-      // Get pageviews for this path and all its aliases.
-      // NOTE: Here $path does NOT have an initial slash because it's coming
-      // from either check_plain($_GET['q']) (block) or from a tag like
-      // [gac|node/N]. Remove a trailing slash (e.g. from node/3/) otherwise
-      // _google_analytics_counter_path_aliases() does not find anything.
-      $unprefixedaliases = self::pathAliases($path);
-      $allpaths = array();
-      $allpaths_dpm = array();
-      foreach ($unprefixedaliases as $val) {
-        // Google Analytics stores initial slash as well, so let's prefix them.
-        // With language prefix, if available, e.g. /en/node/55.
-        $url_lang = empty($lang_prefix) ? '' : '/' . $lang_prefix;
-        $allpaths[] = md5($url_lang . $val);
-        $allpaths_dpm[] = $url_lang . $val;
-        // And its variant with trailing slash
-        // (https://www.drupal.org/node/2396057).
-        // With language prefix, if available, e.g. /en/node/55.
-        $allpaths[] = md5($url_lang . $val . '/');
-        $allpaths_dpm[] = $url_lang . $val . '/';
-        if ($lang_prefix <> '') {
-          // Now, if we are counting NODE with language prefix, we also need to
-          // count the pageviews for that node without the prefix --
-          // it could be that before it had no language prefix
-          // but it still was the same node!
-          // BUT this will not work for non-nodes, e.g. views.
-          // There we depend on the path
-          // e.g. /en/myview because it would be tricky to get a valid language
-          // prefix out of the path. E.g. /en/myview could be a path of a view
-          // where "en" does not mean the English language. In other words,
-          // while prefix before node/id does not change the page
-          // (it's the same node), with views or other custom pages the prefix
-          // may actually contain completely different content.
-          $allpaths[] = md5($val);
-          $allpaths_dpm[] = $val;
-          // And its variant with trailing slash
-          // (https://www.drupal.org/node/2396057).
-          $allpaths[] = md5($val . '/');
-          $allpaths_dpm[] = $val . '/';
-          // @TODO ... obviously, here we should treat the possibility of the NODE/nid having a different language prefix. A niche case (how often do existing NODES change language?)
-        }
-      }
-
-      // Find possible redirects for this path using redirect_load_multiple()
-      // from module Redirect http://drupal.org/project/redirect.
-      // @todo Redirect module is currently being ported to Drupal 8,
-      // @todo but is not usable yet.
-      if (function_exists('redirect_load_multiple')) {
-        $redirectobjects = redirect_load_multiple(FALSE, array('redirect' => $path));
-        foreach ($redirectobjects as $redirectobject) {
-          $allpaths[] = md5('/' . $redirectobject->source);
-          $allpaths_dpm[] = '/' . $redirectobject->source;
-          // And its variant with trailing slash
-          // (https://www.drupal.org/node/2396057).
-          $allpaths[] = md5('/' . $redirectobject->source . '/');
-          $allpaths_dpm[] = '/' . $redirectobject->source . '/';
-          $allpaths[] = md5('/' . $redirectobject->language . '/' . $redirectobject->source);
-          $allpaths_dpm[] = '/' . $redirectobject->language . '/' . $redirectobject->source;
-          // And its variant with trailing slash
-          // (https://www.drupal.org/node/2396057).
-          $allpaths[] = md5('/' . $redirectobject->language . '/' . $redirectobject->source . '/');
-          $allpaths_dpm[] = '/' . $redirectobject->language . '/' . $redirectobject->source . '/';
-        }
-      }
-
-      // Very useful for debugging. In face each variant: node/NID, alias,
-      // redirect, non-node ... with or without trailing slash,
-      // with or without language ... should always give the same count
-      // (sum of counts of all path variants).
-      // Get path counts for each of the path aliases.
-      // Search hash values of path -- faster (primary key). E.g.
-      // SELECT pageviews FROM `google_analytics_counter` where pagepath_hash
-      // IN ('ee1c787bc14bec9945de3240101e99','d884e66c2316317ef6294dc12aca9c').
-      $pathcounts = db_select('google_analytics_counter', 'gac')
-        ->fields('gac', array('pageviews'))
-        ->condition('pagepath_hash', $allpaths, 'IN')
-        ->execute();
-      $sum_of_pageviews = 0;
-      foreach ($pathcounts as $pathcount) {
-        $sum_of_pageviews += $pathcount->pageviews;
-      }
-
-      \Drupal::cache()
-        ->set('google_analytics_counter_page_' . $cacheid, $sum_of_pageviews);
-    }
-
-    return $sum_of_pageviews;
-  }
-
-  /**
-   * Return a list of paths that are aliased with the given path.
-   */
-  private static function pathAliases($node_path) {
-
-    // Get the normal node path if it is a node.].
-    $node_path = \Drupal::service('path.alias_manager')
-      ->getPathByAlias($node_path);
-
-    // Grab all aliases.
-    $aliases = array($node_path);
-
-    $result = db_query("SELECT * FROM {url_alias} WHERE source = :source",
-      array(':source' => $node_path)
-    )->fetchAll();
-    foreach ($result as $row) {
-      $aliases[] = $row->alias;
-    }
-
-    // If this is the front page, add the base path too,
-    // and index.php for good measure.
-    // There may be other ways that the user is accessing the front page
-    // but we can't account for them all.
-    if ($node_path == \Drupal::config('system.site')->get('page.front')) {
-      $aliases[] = '';
-      $aliases[] = '/';
-      $aliases[] = 'index.php';
-    }
-
-    return $aliases;
+    // Log the results.
+    $this->log($this->t('Saved @count paths from Google Analytics into the database.', ['@count' => count($feed->results->rows)]));
   }
 
   /**
@@ -612,20 +444,46 @@ class GoogleAnalyticsCounterCommon {
    *   - expire: optional [default=CACHE_TEMPORARY]
    *   - refresh: optional [default=FALSE].
    *
-   * @return object
+   * @return \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed
    *   A new GoogleAnalyticsCounterFeed object
    */
-  private static function reportData($params = array(), $cache_options = array()) {
-    $params_defaults = array(
-      'profile_id' => 'ga:' . \Drupal::config('google_analytics_counter.settings')->get('profile_id'),
-    );
+  protected function reportData($params = array(), $cache_options = array()) {
+    // Add defaults.
+    $params += [
+      'profile_id' => 'ga:' . $this->config->get('profile_id'),
+      'start_index' => 1,
+      'max_results' => $this->config->get('chunk_to_fetch'),
+    ];
 
-    $params += $params_defaults;
+    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed $ga_feed */
+    $ga_feed = $this->newGaFeed();
+    if (!$ga_feed) {
+      throw new \RuntimeException($this->t('The GoogleAnalyticsCounterFeed could not be initialised, is it authenticated?'));
+    }
 
-    $ga_feed = self::newGaFeed();
+    // Here would be a good point to catch how many requests were made to google
+    // to stay below the api limit or alter the parameters in an alter hook etc.
     $ga_feed->queryReportFeed($params, $cache_options);
+
+    // Handle errors here too.
+    if (!empty($ga_feed->error)) {
+      throw new \RuntimeException($ga_feed->error);
+    }
 
     return $ga_feed;
   }
 
+  /**
+   * Log a message if the logger is set.
+   *
+   * @param string $message
+   *   The message to log.
+   * @param string $level
+   *   The log level, 'info' by default.
+   */
+  protected function log($message, $level = LogLevel::INFO) {
+    if ($this->logger) {
+      $this->logger->log($level, $message);
+    }
+  }
 }
