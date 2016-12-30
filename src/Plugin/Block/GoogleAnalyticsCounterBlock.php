@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\search\Plugin\Block\SearchBlock.
- */
 
 namespace Drupal\google_analytics_counter\Plugin\Block;
 
@@ -23,14 +19,9 @@ class GoogleAnalyticsCounterBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
-    $block_content = GoogleAnalyticsCounterCommon::displayGaCount();
-    if ($block_content == '') {
-      // If unknown, for some reason.
-      // Instead of t('N/A'). Suppose better to use 0 because it's true,
-      // that path has been recorded zero times by GA.
-      // Path may not exist or be private or too new.
-      $block_content = 0;
-    }
+
+    // TODO: use dependency injection.
+    $block_content = \Drupal::service('google_analytics_counter.common')->displayGaCount(\Drupal::service('path.current')->getPath());
     return array(
       '#markup' => $block_content,
     );

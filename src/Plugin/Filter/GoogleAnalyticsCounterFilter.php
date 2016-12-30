@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Drupal\google_analytics_counter\Plugin\Filter\GoogleAnalyticsCounterFilter.
- */
-
 namespace Drupal\google_analytics_counter\Plugin\Filter;
 
 use Drupal\filter\FilterProcessResult;
@@ -59,7 +54,8 @@ class GoogleAnalyticsCounterFilter extends FilterBase {
       // So now we can display the count based on the path.
       // If no path was defined, the function will detect the current
       // page's count.
-      $matchlink[] = GoogleAnalyticsCounterCommon::displayGaCount($path);
+      // TODO: use dependency injection.
+      $matchlink[] = \Drupal::service('google_analytics_counter.common')->displayGaCount($path);
     }
 
     $str = str_replace($orig_match, $matchlink, $str);

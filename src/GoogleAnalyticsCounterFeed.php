@@ -1,18 +1,5 @@
 <?php
 
-/**
- * @file
- * Provides Google Analytics Counter Feed object type and associated methods.
- *
- * Most of the Google Analytics authentication process is taken over from
- * http://drupal.org/project/google_analytics_reports because all we need
- * here is its Google Analytics API submodule but it is not possible to use
- * that separately. Moreover, Google Analytics Reports requires also module
- * Chart which is completely unrelated to this module.
- * For use Oauth2 it's also included patch #20 from issue: "Add Support for
- * OAuth2 Authentication" in https://www.drupal.org/node/1678306.
- */
-
 namespace Drupal\google_analytics_counter;
 
 use Symfony\Component\HttpFoundation\RedirectResponse;

@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Parsing and writing the fetched data.
- */
 
 namespace Drupal\google_analytics_counter;
 
@@ -122,7 +118,7 @@ class GoogleAnalyticsCounterCommon {
    *   GoogleAnalyticsCounterFeed object to authorize access and request data
    *   from the Google Analytics Core Reporting API.
    */
-  public function newGaFeed() {
+  protected function newGaFeed() {
     $config = $this->config;
 
     if ($this->state->get('google_analytics_counter.access_token') && time() < $this->state->get('google_analytics_counter.expires_at')) {
@@ -421,6 +417,38 @@ class GoogleAnalyticsCounterCommon {
 
     // Log the results.
     $this->log($this->t('Saved @count paths from Google Analytics into the database.', ['@count' => count($feed->results->rows)]));
+  }
+
+  /**
+   * Get the count for a path in a span tag.
+   *
+   * @param string $path
+   *   The path to look up
+   * @return string
+   *   The count wrapped in a span.
+   */
+  public function displayGaCount($path) {
+
+    // Make sure the path starts with a slash
+    $path = '/'. trim($path, ' /');
+    // look up both with and without trailing slash
+    $aliases = [
+      $path,
+      $path . '/'
+    ];
+
+    $hashes = array_map('md5', $aliases);
+    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
+      ->fields('gac', array('pageviews'))
+      ->condition('pagepath_hash', $hashes, 'IN')
+      ->execute();
+    $sum_of_pageviews = 0;
+    foreach ($pathcounts as $pathcount) {
+      $sum_of_pageviews += $pathcount->pageviews;
+    }
+
+    // TODO: use this with a twig template.
+    return '<span class="google-analytics-counter">' . number_format($sum_of_pageviews) . '</span>';
   }
 
   /**
