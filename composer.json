@@ -1,0 +1,18 @@
+{
+  "name": "drupal/google_analytics_counter",
+  "description": "Lightweight page view counter drawing on data collected by Google Analytics.",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/google_analytics_counter",
+  "authors": [
+    {
+      "name": "Tomas Fulopp (Vacilando)",
+      "homepage": "https://www.drupal.org/u/vacilando"
+    }
+  ],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/google_analytics_counter",
+    "source": "http://git.drupal.org/project/google_analytics_counter.git"
+  },
+  "license": "GPL-2.0+",
+  "require": {}
+}
