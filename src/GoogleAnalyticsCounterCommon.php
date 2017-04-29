@@ -118,7 +118,7 @@ class GoogleAnalyticsCounterCommon {
    *   GoogleAnalyticsCounterFeed object to authorize access and request data
    *   from the Google Analytics Core Reporting API.
    */
-  protected function newGaFeed() {
+  public function newGaFeed() {
     $config = $this->config;
 
     if ($this->state->get('google_analytics_counter.access_token') && time() < $this->state->get('google_analytics_counter.expires_at')) {
