@@ -39,7 +39,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     $config = \Drupal::config('google_analytics_counter.settings');
     $result = '';
     $result .= $this->t('<p><h3>More information relevant to Google Analytics statistics for this site:</h3>');
-    // Todo: Inject this.
+    // Todo: Use Dependency Injection instead.
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $service */
     $service = \Drupal::service('google_analytics_counter.common');
     if ($service->isAuthenticated()) {
