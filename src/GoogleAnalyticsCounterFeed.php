@@ -157,7 +157,7 @@ class GoogleAnalyticsCounterFeed {
         ->__toString(), TRUE);
       $this->accessToken = $decoded_response['access_token'];
       $this->expiresAt = time() + $decoded_response['expires_in'];
-      if (!$refresh_token) {
+      if (!$this->refreshToken) {
         $this->refreshToken = $decoded_response['refresh_token'];
       }
     }

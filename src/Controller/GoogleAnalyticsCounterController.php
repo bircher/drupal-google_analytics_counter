@@ -39,9 +39,10 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     $config = \Drupal::config('google_analytics_counter.settings');
     $result = '';
     $result .= $this->t('<p><h3>More information relevant to Google Analytics statistics for this site:</h3>');
-
-    // It's a weak test but better than none.
-    if ($config->get('profile_id') <> '') {
+    // Todo: Inject this.
+    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $service */
+    $service = \Drupal::service('google_analytics_counter.common');
+    if ($service->isAuthenticated()) {
       $result .= $this->t('<p>Total number of hits registered by Google Analytics under this profile: %totalhits. This is cumulative; counts for paths that may no longer exist on the website still have historical traces in Google Analytics.',
         array('%totalhits' => number_format(0))
       );
@@ -135,7 +136,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     }
     else {
       $url = Url::fromRoute('google_analytics_counter.admin_auth_form');
-      $result .= $this->t('<font color="red">No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please %link.</font>',
+      $result .= $this->t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please %link.',
         array('%link' => \Drupal::l($this->t('authenticate here'), $url))
       );
     }
