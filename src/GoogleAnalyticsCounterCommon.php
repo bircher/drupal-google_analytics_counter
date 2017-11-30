@@ -160,7 +160,11 @@ class GoogleAnalyticsCounterCommon {
           'google_analytics_counter.expires_at' => $gac_feed->expiresAt,
           'google_analytics_counter.refresh_token' => $gac_feed->refreshToken,
         ]);
-//        $this->state->delete('google_analytics_counter.redirect_uri');
+
+        // ISSUE: Authentication is being lost when 'redirect_uri' is deleted.
+        // WORK-AROUND: Don't delete the redirect_uri.
+        // $this->state->delete('google_analytics_counter.redirect_uri');
+
         drupal_set_message(t('You have been successfully authenticated.'), 'status', FALSE);
       }
       catch (Exception $e) {

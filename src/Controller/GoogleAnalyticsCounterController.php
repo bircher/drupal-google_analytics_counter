@@ -34,7 +34,6 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     return $redirect->send();
   }
 
-
   public function dashboard() {
     $config = \Drupal::config('google_analytics_counter.settings');
     $result = '';
