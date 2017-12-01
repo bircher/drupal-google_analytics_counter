@@ -303,10 +303,10 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Save the view cound for a given node.
+   * Save the pageview count for a given node.
    *
    * @param integer $nid
-   *   The node id for the node of which to save the data.
+   *   The node id of the node for which to save the data.
    */
   public function updateStorage($nid) {
 
@@ -420,7 +420,7 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Get the count for a path in a span tag.
+   * Get the count of pageviews for a path.
    *
    * @param string $path
    *   The path to look up
@@ -438,17 +438,12 @@ class GoogleAnalyticsCounterCommon {
     ];
 
     $hashes = array_map('md5', $aliases);
-    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
+    $pageviews = $this->connection->select('google_analytics_counter', 'gac')
       ->fields('gac', array('pageviews'))
       ->condition('pagepath_hash', $hashes, 'IN')
-      ->execute();
-    $sum_of_pageviews = 0;
-    foreach ($pathcounts as $pathcount) {
-      $sum_of_pageviews += $pathcount->pageviews;
-    }
+      ->execute()->fetchField();
 
-    // TODO: use this with a twig template.
-    return '<span class="google-analytics-counter">' . number_format($sum_of_pageviews) . '</span>';
+    return number_format($pageviews);
   }
 
   /**

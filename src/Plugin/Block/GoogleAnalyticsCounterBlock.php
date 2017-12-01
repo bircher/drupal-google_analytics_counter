@@ -22,9 +22,10 @@ class GoogleAnalyticsCounterBlock extends BlockBase {
 
     // TODO: use dependency injection.
     $block_content = \Drupal::service('google_analytics_counter.common')->displayGaCount(\Drupal::service('path.current')->getPath());
-    return array(
-      '#markup' => $block_content,
-    );
+    return [
+      '#theme' => 'google_analytics_counter',
+      '#pageviews' => $block_content,
+    ];
   }
 
 }

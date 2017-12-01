@@ -69,5 +69,15 @@ function google_analytics_counter_cron() {
     }
     \Drupal::state()->set('google_analytics_counter.last_cron_run', REQUEST_TIME);
   }
+}
 
+/**
+ * Implements hook_theme().
+ */
+function google_analytics_counter_theme() {
+  return [
+    'google_analytics_counter' => [
+      'variables' => ['pageviews' => NULL],
+    ],
+  ];
 }
