@@ -25,15 +25,6 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     return \Drupal::formBuilder()->getForm($form);
   }
 
-  /**
-   * Redirect to the module's permission settings.
-   */
-  public function permissions() {
-    $url = '/admin/people/permissions#module-google_analytics_counter';
-    $redirect = new RedirectResponse($url);
-    return $redirect->send();
-  }
-
 
   public function dashboard() {
     $config = \Drupal::config('google_analytics_counter.settings');
