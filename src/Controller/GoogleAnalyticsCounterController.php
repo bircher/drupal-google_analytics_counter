@@ -7,8 +7,6 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterResetForm;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class GoogleAnalyticsCounterController.
