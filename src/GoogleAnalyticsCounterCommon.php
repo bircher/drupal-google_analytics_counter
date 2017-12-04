@@ -431,17 +431,13 @@ class GoogleAnalyticsCounterCommon {
 
     // Make sure the path starts with a slash
     $path = '/'. trim($path, ' /');
-    // look up both with and without trailing slash
-    $aliases = [
-      $path,
-      $path . '/'
-    ];
 
-    $hashes = array_map('md5', $aliases);
-    $pageviews = $this->connection->select('google_analytics_counter', 'gac')
-      ->fields('gac', array('pageviews'))
-      ->condition('pagepath_hash', $hashes, 'IN')
-      ->execute()->fetchField();
+    $path = $this->aliasManager->getAliasByPath($path);
+
+    $query = $this->connection->select('google_analytics_counter', 'gac');
+    $query->fields('gac', ['pageviews']);
+    $query->condition('pagepath', $path);
+    $pageviews = $query->execute()->fetchField();
 
     return number_format($pageviews);
   }
