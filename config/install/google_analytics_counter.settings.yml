@@ -2,9 +2,15 @@ cron_interval: 30
 chunk_to_fetch: 1000
 api_dayquota: 10000
 cache_length: 86400
-start_date: '-1 week'
+start_date: '-1 day'
 overwrite_statistics: false
 profile_id: ''
 client_id: ''
 client_secret: ''
 redirect_uri: ''
+total_hits: 0
+total_nodes: 0
+storage: 'google_analytics_counter_storage'
+node_data_step: 0
+chunk_process_time: 0
+chunk_node_process_time: 0

@@ -23,14 +23,14 @@ class GoogleAnalyticsWorker extends QueueWorkerBase implements ContainerFactoryP
    *
    * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
    */
-  protected $analytics_service;
+  protected $common;
 
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, GoogleAnalyticsCounterCommon $analytics_service) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, GoogleAnalyticsCounterCommon $common) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->analytics_service = $analytics_service;
+    $this->common = $common;
   }
 
   /**
@@ -51,10 +51,10 @@ class GoogleAnalyticsWorker extends QueueWorkerBase implements ContainerFactoryP
    */
   public function processItem($data) {
     if ($data['type'] == 'fetch') {
-      $this->analytics_service->updatePathCounts($data['index']);
+      $this->common->updatePathCounts($data['index']);
     }
     elseif($data['type'] == 'count') {
-      $this->analytics_service->updateStorage($data['nid']);
+      $this->common->updateStorage($data['nid']);
     }
   }
 

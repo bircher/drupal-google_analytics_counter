@@ -1,5 +1,24 @@
-google_analytics_counter.admin_settings_form:
+google_analytics_counter.index:
   title: 'Google Analytics Counter'
   parent: system.admin_config_system
   description: 'Configure Google Analytics Counter module'
   route_name: google_analytics_counter.admin_settings_form
+  weight: 100
+google_analytics_counter.admin_settings_form:
+  title: 'Settings'
+  description: 'Configure Google Analytics Counter module.'
+  parent: google_analytics_counter.index
+  route_name: google_analytics_counter.admin_settings_form
+  weight: 10
+google_analytics_counter.admin_dashboard_form:
+  title: 'Dashboard'
+  description: 'More information relevant to Google Analytics statistics for this site.'
+  parent: google_analytics_counter.index
+  route_name: google_analytics_counter.admin_dashboard_form
+  weight: 20
+google_analytics_counter.admin_auth_form:
+  title: 'GA Authentication'
+  description: 'Authenticate access to a Google Analytics profile.'
+  parent: google_analytics_counter.index
+  route_name: google_analytics_counter.admin_auth_form
+  weight: 30

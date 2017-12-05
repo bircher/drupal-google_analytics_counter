@@ -34,9 +34,15 @@ function google_analytics_counter_cron() {
   $interval = 60 * $config->get('cron_interval');
   // We don't want to act every time cron runs (which could be every minute)
   // so keep a time for the next run in a variable.
-  if (REQUEST_TIME >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
+
+   if (REQUEST_TIME >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
+    // DEBUG:
+    // Make services available without concern for the interval by commenting out
+    // the above line, if (REQUEST_TIME >= \Drupal::state()..., and its closure below.
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $service */
     $service = Drupal::service('google_analytics_counter.common');
+    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterDashboard $dashboard */
+    $dashboard = Drupal::service('google_analytics_counter.dashboard');
     $queue = \Drupal::queue('google_analytics_counter_worker');
 
     try {
@@ -58,7 +64,6 @@ function google_analytics_counter_cron() {
         foreach ($ids as $nid) {
           $queue->createItem(['type' => 'count', 'nid' => $nid]);
         }
-
       }
       else {
         \Drupal::logger('google_analytics_counter')->alert('Google Analytics Counter is not authenticated.');
@@ -68,6 +73,22 @@ function google_analytics_counter_cron() {
       \Drupal::logger('google_analytics_counter')->alert('Cron experienced a problem: ' . $e->getMessage());
     }
     \Drupal::state()->set('google_analytics_counter.last_cron_run', REQUEST_TIME);
-  }
 
+  // Retrieve path with counts from Google Analytics into a local table.
+  // $data->updatePathCounts();
+  // Update the storage table from the local table with the GA data.
+  $dashboard->updateDashboard();
+
+  } // End DEBUG
+}
+
+/**
+ * Implements hook_theme().
+ */
+function google_analytics_counter_theme() {
+  return [
+    'google_analytics_counter' => [
+      'variables' => ['pageviews' => NULL],
+    ],
+  ];
 }

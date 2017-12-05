@@ -20,13 +20,6 @@ google_analytics_counter.admin_auth_form:
   requirements:
     _permission: 'administer google analytics counter'
 
-google_analytics_counter.admin_permissions_form:
-  path: '/admin/config/system/google-analytics-counter/permissions'
-  defaults:
-    _controller: '\Drupal\google_analytics_counter\Controller\GoogleAnalyticsCounterController::permissions'
-  requirements:
-    _permission: 'administer google analytics counter'
-
 google_analytics_counter.admin_dashboard_reset:
   path: '/admin/config/system/google-analytics-counter/dashboard/reset'
   defaults:

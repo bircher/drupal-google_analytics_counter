@@ -2,10 +2,17 @@
 
 namespace Drupal\google_analytics_counter\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\State\StateInterface;
+use Drupal\Core\Url;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Process\Exception\RuntimeException;
+
+
 
 /**
  * Class GoogleAnalyticsCounterAdminSettingsForm.
@@ -13,6 +20,46 @@ use Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed;
  * @package Drupal\google_analytics_counter\Form
  */
 class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
+
+  /**
+   * The state keyvalue collection.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
+   *
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+   */
+  protected $common;
+  /**
+   * Constructs a new SiteMaintenanceModeForm.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state keyvalue collection to use.
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
+   *   Google Analytics Counter Common object.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterCommon $common) {
+    parent::__construct($config_factory);
+    $this->state = $state;
+    $this->common = $common;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('state'),
+      $container->get('google_analytics_counter.common')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -132,11 +179,27 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Redirect URI'),
       '#default_value' => $config->get('redirect_uri'),
       '#size' => 30,
-      '#description' => $this->t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Leave blank to use default (blank will work for most cases).<br /> Default: @default_uri', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
+      '#description' => $this->t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Leave blank to use default (blank will work for most cases).<br /> Default: @default_uri/authentication', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
       '#weight' => -7,
     );
 
-    return parent::buildForm($form, $form_state);
+    try {
+      if ($this->common->isAuthenticated()) {
+        return parent::buildForm($form, $form_state);
+      }
+      else {
+        $t_args = [
+          ':href' => Url::fromRoute('google_analytics_counter.admin_auth_form', [], ['absolute' => TRUE])
+            ->toString(),
+          '@href' => 'authenticate here',
+        ];
+        drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
+        return parent::buildForm($form, $form_state);
+      }
+    }
+    catch (RuntimeException $e) {
+      \Drupal::logger('google_analytics_counter')->alert('Google Analytics Counter is not authenticated: ' . $e->getMessage());
+    }
   }
 
   /**

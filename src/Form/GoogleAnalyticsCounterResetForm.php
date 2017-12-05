@@ -5,10 +5,9 @@ namespace Drupal\google_analytics_counter\Form;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 
 /**
- * Defines a confirmation form for reset module data.
+ * Defines a confirmation form to reset module configuration and states.
  */
 class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
 
@@ -23,7 +22,7 @@ class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return t('Are you sure that you wish to reset all configuration variables of module Google Analytics Counter to their default values?');
+    return t('Are you sure that you want to revoke Google Analytics Counter\'s authentication with Google?');
   }
 
   /**
@@ -50,9 +49,29 @@ class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
+  public function getDescription() {
+    // The number of hours it will take to reindex the site.
+    return $this->t('Clicking <strong>Yes</strong> means you will have to reauthenticate with Google. This action cannot be undone.');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    // TODO: reset even more settings..
-    \Drupal::service('google_analytics_counter.common')->revoke();
+    // Todo: Reset configuration values
+
+    // Revoke the state values
+    if (\Drupal::state()->get('google_analytics_counter.refresh_token') != NULL) {
+      \Drupal::service('google_analytics_counter.common')->revoke();
+    }
+
+    // Delete any records from the queue that haven't been processed yet.
+    \Drupal::database()->delete('queue')
+      ->condition('name', 'google_analytics_counter_worker')
+      ->execute();
+
+    $form_state->setRedirectUrl($this->getCancelUrl());
+
   }
 
 }

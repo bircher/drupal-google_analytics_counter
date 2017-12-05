@@ -2,6 +2,9 @@ services:
   google_analytics_counter.common:
     class: \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
     arguments: ['@config.factory', '@state', '@database', '@path.alias_manager', '@language_manager',  '@logger.channel.google_analytics_counter']
+  google_analytics_counter.dashboard:
+    class: \Drupal\google_analytics_counter\GoogleAnalyticsCounterDashboard
+    arguments: ['@config.factory', '@database', '@google_analytics_counter.common']
   logger.channel.google_analytics_counter:
     parent: logger.channel_base
     arguments: ['google_analytics_counter']

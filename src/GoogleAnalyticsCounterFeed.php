@@ -2,6 +2,7 @@
 
 namespace Drupal\google_analytics_counter;
 
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use GuzzleHttp\Exception\RequestException;
 use Drupal\Component\Utility\UrlHelper;
@@ -10,6 +11,8 @@ use Drupal\Component\Utility\UrlHelper;
  * Authorize access and request data from Google Analytics Core Reporting API.
  */
 class GoogleAnalyticsCounterFeed {
+
+  use StringTranslationTrait;
 
   const OAUTH2_REVOKE_URI = 'https://accounts.google.com/o/oauth2/revoke';
   const OAUTH2_TOKEN_URI = 'https://accounts.google.com/o/oauth2/token';
@@ -157,19 +160,19 @@ class GoogleAnalyticsCounterFeed {
         ->__toString(), TRUE);
       $this->accessToken = $decoded_response['access_token'];
       $this->expiresAt = time() + $decoded_response['expires_in'];
-      if (!$refresh_token) {
+      if (!$this->refreshToken) {
         $this->refreshToken = $decoded_response['refresh_token'];
       }
     }
     else {
-      $error_vars = array(
-        '!code' => $this->response->getStatusCode(),
-        '!message' => $this->response->getReasonPhrase(),
-        '!details' => strip_tags($this->response->getbody()->__toString()),
-      );
-      $this->error = t('Code: !code - Error: !message - Message: !details', $error_vars);
+      $error_vars = [
+        ':code' => $this->response->getStatusCode(),
+        ':message' => $this->response->getReasonPhrase(),
+        ':details' => strip_tags($this->response->getbody()->__toString()),
+      ];
+      $this->error = $this->t('Code: :code - Error: :message - Message: :details', $error_vars);
       \Drupal::logger('Google Analytics Counter')
-        ->error('Code: !code - Error: !message - Message: !details', $error_vars);
+        ->error('Code: :code - Error: :message - Message: :details', $error_vars);
     }
   }
 
@@ -486,7 +489,7 @@ class GoogleAnalyticsCounterFeed {
     else {
       $parameters['sort'] = $params['sort_metric'];
     }
-
+    $start_date = '';
     if (empty($params['start_date']) || !is_int($params['start_date'])) {
       // Use the day that Google Analytics was released (1 Jan 2005).
       $start_date = '2005-01-01';
@@ -498,6 +501,7 @@ class GoogleAnalyticsCounterFeed {
 
     $parameters['start-date'] = $start_date;
 
+    $end_date = '';
     if (empty($params['end_date']) || !is_int($params['end_date'])) {
       $end_date = date('Y-m-d');
     }

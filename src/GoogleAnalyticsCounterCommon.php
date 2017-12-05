@@ -2,7 +2,6 @@
 
 namespace Drupal\google_analytics_counter;
 
-use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -108,7 +107,7 @@ class GoogleAnalyticsCounterCommon {
    *   True if there is a refresh token set.
    */
   public function isAuthenticated() {
-    return $this->state->get('google_analytics_counter.refresh_token') != NULL;
+    return $this->state->get('google_analytics_counter.access_token') != NULL;
   }
 
   /**
@@ -160,7 +159,11 @@ class GoogleAnalyticsCounterCommon {
           'google_analytics_counter.expires_at' => $gac_feed->expiresAt,
           'google_analytics_counter.refresh_token' => $gac_feed->refreshToken,
         ]);
-        $this->state->delete('google_analytics_counter.redirect_uri');
+
+        // ISSUE: Authentication is being lost when 'redirect_uri' is deleted.
+        // WORK-AROUND: Don't delete the redirect_uri.
+        // $this->state->delete('google_analytics_counter.redirect_uri');
+
         drupal_set_message(t('You have been successfully authenticated.'), 'status', FALSE);
       }
       catch (Exception $e) {
@@ -303,10 +306,10 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Save the view cound for a given node.
+   * Save the pageview count for a given node.
    *
    * @param integer $nid
-   *   The node id for the node of which to save the data.
+   *   The node id of the node for which to save the data.
    */
   public function updateStorage($nid) {
 
@@ -332,7 +335,7 @@ class GoogleAnalyticsCounterCommon {
     $aliases = array_unique($aliases);
     $hashes = array_map('md5', $aliases);
     $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
-      ->fields('gac', array('pageviews'))
+      ->fields('gac', ['pageviews'])
       ->condition('pagepath_hash', $hashes, 'IN')
       ->execute();
     $sum_of_pageviews = 0;
@@ -342,10 +345,8 @@ class GoogleAnalyticsCounterCommon {
 
     // Always save the data in our table.
     $this->connection->merge('google_analytics_counter_storage')
-      ->key(array('nid' => $nid))
-      ->fields(array(
-        'pageview_total' => $sum_of_pageviews,
-      ))
+      ->key(['nid' => $nid])
+      ->fields(['pageview_total' => $sum_of_pageviews])
       ->execute();
 
     // If we selected to override the storage of the statistics module.
@@ -420,7 +421,7 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Get the count for a path in a span tag.
+   * Get the count of pageviews for a path.
    *
    * @param string $path
    *   The path to look up
@@ -431,24 +432,15 @@ class GoogleAnalyticsCounterCommon {
 
     // Make sure the path starts with a slash
     $path = '/'. trim($path, ' /');
-    // look up both with and without trailing slash
-    $aliases = [
-      $path,
-      $path . '/'
-    ];
 
-    $hashes = array_map('md5', $aliases);
-    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
-      ->fields('gac', array('pageviews'))
-      ->condition('pagepath_hash', $hashes, 'IN')
-      ->execute();
-    $sum_of_pageviews = 0;
-    foreach ($pathcounts as $pathcount) {
-      $sum_of_pageviews += $pathcount->pageviews;
-    }
+    $path = $this->aliasManager->getAliasByPath($path);
 
-    // TODO: use this with a twig template.
-    return '<span class="google-analytics-counter">' . number_format($sum_of_pageviews) . '</span>';
+    $query = $this->connection->select('google_analytics_counter', 'gac');
+    $query->fields('gac', ['pageviews']);
+    $query->condition('pagepath', $path);
+    $pageviews = $query->execute()->fetchField();
+
+    return number_format($pageviews);
   }
 
   /**
