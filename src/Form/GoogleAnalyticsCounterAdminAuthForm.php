@@ -15,7 +15,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
 
-
   /**
    * The state keyvalue collection.
    *

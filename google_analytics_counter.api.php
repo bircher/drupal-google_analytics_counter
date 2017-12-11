@@ -29,12 +29,12 @@ function hook_google_analytics_counter_query_alter(&$query) {
  * @param array $request
  *   Array with request options.
  */
-function hook_google_analytics_counter_request_alter(&$request) {
-  // e.g. Only get stats for records from 15th of February, 2014 onwards (instead of 2005, which is the default date)
-  $request['start_date'] = strtotime('2014-02-15');
-  // e.g. Grab only stats for URLs which start with /blog/
-  $request['filters'] = "ga:pagePath=~^/blog/";
-}
+//function hook_google_analytics_counter_request_alter(&$request) {
+//  // e.g. Only get stats for records from 15th of February, 2014 onwards (instead of 2005, which is the default date)
+//  $request['start_date'] = strtotime('2014-02-15');
+//  // e.g. Grab only stats for URLs which start with /blog/
+//  $request['filters'] = "ga:pagePath=~^/blog/";
+//}
 
 /**
  * Informs other modules about which nodes have been updated.

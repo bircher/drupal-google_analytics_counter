@@ -464,6 +464,12 @@ class GoogleAnalyticsCounterFeed {
       'max_results' => 10000,
     );
 
+//     DEBUG:
+//     echo '<pre>';
+//     print_r($params);
+//     echo '</pre>';
+//     exit;
+
     $parameters = array('ids' => $params['profile_id']);
 
     if (is_array($params['dimensions'])) {

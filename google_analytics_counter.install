@@ -31,7 +31,7 @@ function google_analytics_counter_schema() {
       ),
       'pageviews' => array(
         'type' => 'int',
-  // Big int unsigned: 8 B (18446744073709551615).
+        // Big int unsigned: 8 B (18446744073709551615).
         'size' => 'big',
         'description' => 'Pageview count.',
         'unsigned' => TRUE,
@@ -82,7 +82,7 @@ function google_analytics_counter_requirements($phase) {
   if ($phase == 'runtime') {
     $config = \Drupal::config('google_analytics_counter.settings');
     $params = array(
-      '%profile_id' => $config->get('profile_id'),
+      '%profile_id' => $config->get('general_settings.profile_id'),
     );
     $requirements['google_analytics_counter_authentication'] = array(
       'title' => t('Google Analytics Counter'),
@@ -92,7 +92,7 @@ function google_analytics_counter_requirements($phase) {
     );
     $authenticated = FALSE;
     // It's a weak test but better than none.
-    if ($config->get('profile_id') <> '') {
+    if ($config->get('general_settings.profile_id') <> '') {
       $authenticated = TRUE;
     }
     if (!$authenticated) {

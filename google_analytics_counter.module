@@ -25,44 +25,38 @@ function google_analytics_counter_help($route_name, RouteMatchInterface $route_m
  * Implements hook_cron().
  */
 function google_analytics_counter_cron() {
-
   $config = \Drupal::config('google_analytics_counter.settings');
 
-  // Defaults to an hourly interval. Of course, cron has to be running
-  // at least hourly for this to work.
-  // $interval must contain value in seconds.
-  $interval = 60 * $config->get('cron_interval');
-  // We don't want to act every time cron runs (which could be every minute)
-  // so keep a time for the next run in a variable.
+  // $interval must be a value in seconds.
+  $interval = 60 * $config->get('general_settings.cron_interval');
 
-   if (REQUEST_TIME >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
-    // DEBUG:
-    // Make services available without concern for the interval by commenting out
-    // the above line, if (REQUEST_TIME >= \Drupal::state()..., and its closure below.
-    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $service */
-    $service = Drupal::service('google_analytics_counter.common');
+  // We don't want to act every time cron runs, which could be every minute.
+  // To avoid this interval, set Minimum time to wait before fetching Google Analytics data to 0.
+  if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
+    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
+    $common = Drupal::service('google_analytics_counter.common');
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterDashboard $dashboard */
     $dashboard = Drupal::service('google_analytics_counter.dashboard');
     $queue = \Drupal::queue('google_analytics_counter_worker');
 
     try {
-      if ($service->isAuthenticated()) {
+      if ($common->isAuthenticated()) {
         // Fetch the first batch to see how many there are.
-        $results = $service->getChunkedResults();
+        $results = $common->getChunkedResults();
         $total = $results->results->totalResults;
-        // Save the total to show on the overview.
-        \Drupal::state()->set('google_analytics_counter.total_results', $total);
-        for($index = 0; $index < $total/$config->get('chunk_to_fetch'); $index++) {
+        for($index = 0; $index < $total/$config->get('general_settings.chunk_to_fetch'); $index++) {
           // Add a queue item to fetch for all chunks.
           $queue->createItem(['type' => 'fetch', 'index' => $index]);
         }
 
         // Queue all the published nodes to be counted
         $ids = \Drupal::entityQuery('node')
-          ->condition('status', NODE_PUBLISHED)
+          ->condition('status', \Drupal\node\NodeInterface::PUBLISHED)
           ->execute();
         foreach ($ids as $nid) {
           $queue->createItem(['type' => 'count', 'nid' => $nid]);
+          // Here it is. The queue worker is not working so we are using another process.
+          $common->updateStorage($nid);
         }
       }
       else {
@@ -72,14 +66,18 @@ function google_analytics_counter_cron() {
     catch (RuntimeException $e) {
       \Drupal::logger('google_analytics_counter')->alert('Cron experienced a problem: ' . $e->getMessage());
     }
-    \Drupal::state()->set('google_analytics_counter.last_cron_run', REQUEST_TIME);
+    \Drupal::state()->set('google_analytics_counter.last_cron_run', \Drupal::time()->getRequestTime());
 
-  // Retrieve path with counts from Google Analytics into a local table.
-  // $data->updatePathCounts();
-  // Update the storage table from the local table with the GA data.
-  $dashboard->updateDashboard();
+    // Important to set it before the job because if they take long and there is another cron triggered...
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.cron_next_execution', \Drupal::time()->getRequestTime())->save();
 
-  } // End DEBUG
+    // Retrieve path with counts from Google Analytics.
+    $common->updatePathCounts();
+
+    // Update the storage values on the dashboard.
+    $dashboard->updateDashboard();
+
+  }
 }
 
 /**

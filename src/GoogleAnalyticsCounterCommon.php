@@ -83,7 +83,7 @@ class GoogleAnalyticsCounterCommon {
    * @param \Psr\Log\LoggerInterface $logger
    *   A logger instance.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, Connection $connection, AliasManagerInterface $alias_manager, LanguageManagerInterface $language, LoggerInterface $logger = NULL) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, Connection $connection, AliasManagerInterface $alias_manager, LanguageManagerInterface $language, LoggerInterface $logger) {
     $this->config = $config_factory->get('google_analytics_counter.settings');
     $this->state = $state;
     $this->connection = $connection;
@@ -127,8 +127,8 @@ class GoogleAnalyticsCounterCommon {
     elseif ($this->state->get('google_analytics_counter.refresh_token')) {
       // If the site has an access token and refresh token, but the access
       // token has expired, authenticate the user with the refresh token.
-      $client_id = $config->get('client_id');
-      $client_secret = $config->get('client_secret');
+      $client_id = $config->get('general_settings.client_id');
+      $client_secret = $config->get('general_settings.client_secret');
       $refresh_token = $this->state->get('google_analytics_counter.refresh_token');
 
       try {
@@ -152,7 +152,7 @@ class GoogleAnalyticsCounterCommon {
       // to the config page with an access code, complete the authentication.
       try {
         $gac_feed = new GoogleAnalyticsCounterFeed();
-        $gac_feed->finishAuthentication($config->get('client_id'), $config->get('client_secret'), $this->getRedirectUri());
+        $gac_feed->finishAuthentication($config->get('general_settings.client_id'), $config->get('general_settings.client_secret'), $this->getRedirectUri());
 
         $this->state->setMultiple([
           'google_analytics_counter.access_token' => $gac_feed->accessToken,
@@ -186,8 +186,8 @@ class GoogleAnalyticsCounterCommon {
    */
   public function getRedirectUri() {
 
-    if ($this->config->get('redirect_uri')) {
-      return $this->config->get('redirect_uri');
+    if ($this->config->get('general_settings.redirect_uri')) {
+      return $this->config->get('general_settings.redirect_uri');
     }
 
     $https = FALSE;
@@ -240,20 +240,20 @@ class GoogleAnalyticsCounterCommon {
 
 
   /**
-   * Sets the expiry timestamp for cached queries.Default is 1 day.
+   * Sets the expiry timestamp for cached queries. Default is 1 day.
    *
    * @return int
    *   The UNIX timestamp to expire the query at.
    */
   public static function cacheTime() {
     return time() + \Drupal::config('google_analytics_counter.settings')
-      ->get('cache_length');
+      ->get('general_settings.cache_length');
   }
 
   /**
    * Convert seconds to hours, minutes and seconds.
    */
-  public static function sec2hms($sec, $pad_hours = FALSE) {
+  public function sec2hms($sec, $pad_hours = FALSE) {
 
     // Start with a blank string.
     $hms = "";
@@ -289,7 +289,7 @@ class GoogleAnalyticsCounterCommon {
 
   public function beginAuthentication() {
     $gafeed = new GoogleAnalyticsCounterFeed();
-    $gafeed->beginAuthentication($this->config->get('client_id'), $this->getRedirectUri());
+    $gafeed->beginAuthentication($this->config->get('general_settings.client_id'), $this->getRedirectUri());
   }
 
   /**
@@ -350,12 +350,12 @@ class GoogleAnalyticsCounterCommon {
       ->execute();
 
     // If we selected to override the storage of the statistics module.
-    if ($this->config->get('overwrite_statistics')) {
+    if ($this->config->get('general_settings.overwrite_statistics')) {
       $this->connection->merge('node_counter')
         ->key(array('nid' => $nid))
         ->fields(array(
           'totalcount' => $sum_of_pageviews,
-          'timestamp' => REQUEST_TIME,
+          'timestamp' => \Drupal::time()->getRequestTime(),
         ))
         ->execute();
     }
@@ -372,17 +372,17 @@ class GoogleAnalyticsCounterCommon {
    */
   public function getChunkedResults($index = 0) {
     $parameters = [
-      'profile_id' => 'ga:' . $this->config->get('profile_id'),
+      'profile_id' => 'ga:' . $this->config->get('general_settings.profile_id'),
       'dimensions' => ['ga:pagePath'],
       // Date would not be necessary for totals, but we also calculate stats of
       // views per day, so we need it.
       'metrics' => ['ga:pageviews'],
-      'start_date' => strtotime($this->config->get('start_date')),
+      'start_date' => strtotime($this->config->get('general_settings.start_date')),
       // Using 'tomorrow' to offset any timezone shift
       // between the hosting and Google servers.
       'end_date' => strtotime('tomorrow'),
-      'start_index' => ($this->config->get('chunk_to_fetch') * $index) + 1,
-      'max_results' => $this->config->get('chunk_to_fetch'),
+      'start_index' => ($this->config->get('general_settings.chunk_to_fetch') * $index) + 1,
+      'max_results' => $this->config->get('general_settings.chunk_to_fetch'),
     ];
 
     $cachehere = [
@@ -417,7 +417,7 @@ class GoogleAnalyticsCounterCommon {
     }
 
     // Log the results.
-    $this->log($this->t('Saved @count paths from Google Analytics into the database.', ['@count' => count($feed->results->rows)]));
+    $this->logger->info($this->t('Saved @count paths from Google Analytics into the database.', ['@count' => count($feed->results->rows)]));
   }
 
   /**
@@ -448,7 +448,7 @@ class GoogleAnalyticsCounterCommon {
    *
    * @param array $params
    *   An associative array containing:
-   *   - profile_id: required [default=config('profile_id')]
+   *   - profile_id: required [default=config('general_settings.profile_id')]
    *   - metrics: required.
    *   - dimensions: optional [default=none]
    *   - sort_metric: optional [default=none]
@@ -467,18 +467,18 @@ class GoogleAnalyticsCounterCommon {
    * @return \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed
    *   A new GoogleAnalyticsCounterFeed object
    */
-  protected function reportData($params = array(), $cache_options = array()) {
+  public function reportData($params = array(), $cache_options = array()) {
     // Add defaults.
     $params += [
-      'profile_id' => 'ga:' . $this->config->get('profile_id'),
+      'profile_id' => 'ga:' . $this->config->get('general_settings.profile_id'),
       'start_index' => 1,
-      'max_results' => $this->config->get('chunk_to_fetch'),
+      'max_results' => $this->config->get('general_settings.chunk_to_fetch'),
     ];
 
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed $ga_feed */
     $ga_feed = $this->newGaFeed();
     if (!$ga_feed) {
-      throw new \RuntimeException($this->t('The GoogleAnalyticsCounterFeed could not be initialised, is it authenticated?'));
+      throw new \RuntimeException($this->t('The GoogleAnalyticsCounterFeed could not be initialized, is it authenticated?'));
     }
 
     // Here would be a good point to catch how many requests were made to google
@@ -493,17 +493,4 @@ class GoogleAnalyticsCounterCommon {
     return $ga_feed;
   }
 
-  /**
-   * Log a message if the logger is set.
-   *
-   * @param string $message
-   *   The message to log.
-   * @param string $level
-   *   The log level, 'info' by default.
-   */
-  protected function log($message, $level = LogLevel::INFO) {
-    if ($this->logger) {
-      $this->logger->log($level, $message);
-    }
-  }
 }
