@@ -166,13 +166,13 @@ class GoogleAnalyticsCounterFeed {
     }
     else {
       $error_vars = [
-        ':code' => $this->response->getStatusCode(),
-        ':message' => $this->response->getReasonPhrase(),
-        ':details' => strip_tags($this->response->getbody()->__toString()),
+        '@code' => $this->response->getStatusCode(),
+        '@message' => $this->response->getReasonPhrase(),
+        '@details' => strip_tags($this->response->getbody()->__toString()),
       ];
-      $this->error = $this->t('Code: :code - Error: :message - Message: :details', $error_vars);
-      \Drupal::logger('Google Analytics Counter')
-        ->error('Code: :code - Error: :message - Message: :details', $error_vars);
+      $this->error = $this->t('Code: @code.  Error: @message.  Message: @details', $error_vars);
+      \Drupal::logger('google_analytics_counter')
+        ->error('Code: @code.  Error: @message.  Message: @details', $error_vars);
     }
   }
 
@@ -381,9 +381,9 @@ class GoogleAnalyticsCounterFeed {
         '@message' => $this->response->getReasonPhrase(),
         '@details' => strip_tags($this->response->getBody()->__toString()),
       );
-      $this->error = t('Code: @code, Error: @message, Message: @details', $error_vars);
-      \Drupal::logger('Google Analytics Counter')
-        ->error('Code: @code, Error: @message, Message: @details', []);
+      $this->error = $this->t('Code: @code.  Error: @message.  Message: @details', $error_vars);
+      \Drupal::logger('google_analytics_counter')
+        ->error('Code: @code.  Error: @message.  Message: @details', $error_vars);
     }
   }
 
@@ -447,6 +447,10 @@ class GoogleAnalyticsCounterFeed {
 
   /**
    * Query and sanitize report data.
+   *
+   * @param array $params
+   * @param array $cache_options
+   * @return $this
    */
   public function queryReportFeed($params = array(), $cache_options = array()) {
 
@@ -463,12 +467,6 @@ class GoogleAnalyticsCounterFeed {
       'start_index' => 1,
       'max_results' => 10000,
     );
-
-//     DEBUG:
-//     echo '<pre>';
-//     print_r($params);
-//     echo '</pre>';
-//     exit;
 
     $parameters = array('ids' => $params['profile_id']);
 

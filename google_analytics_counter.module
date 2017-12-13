@@ -6,9 +6,7 @@
  */
 
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Url;
-use Drupal\Core\Link;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\msk\MskEnvironment;
 
 /**
  * Implements hook_help().
@@ -25,6 +23,11 @@ function google_analytics_counter_help($route_name, RouteMatchInterface $route_m
  * Implements hook_cron().
  */
 function google_analytics_counter_cron() {
+  // Exit cron if not in Production environment.
+  if (!MskEnvironment::isProduction()) {
+    return FALSE;
+  }
+
   $config = \Drupal::config('google_analytics_counter.settings');
 
   // $interval must be a value in seconds.
@@ -35,8 +38,6 @@ function google_analytics_counter_cron() {
   if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
     $common = Drupal::service('google_analytics_counter.common');
-    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterDashboard $dashboard */
-    $dashboard = Drupal::service('google_analytics_counter.dashboard');
     $queue = \Drupal::queue('google_analytics_counter_worker');
 
     try {
@@ -56,7 +57,7 @@ function google_analytics_counter_cron() {
         foreach ($ids as $nid) {
           $queue->createItem(['type' => 'count', 'nid' => $nid]);
           // Here it is. The queue worker is not working so we are using another process.
-          $common->updateStorage($nid);
+//          $common->updateStorage($nid);
         }
       }
       else {
@@ -72,11 +73,7 @@ function google_analytics_counter_cron() {
     \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.cron_next_execution', \Drupal::time()->getRequestTime())->save();
 
     // Retrieve path with counts from Google Analytics.
-    $common->updatePathCounts();
-
-    // Update the storage values on the dashboard.
-    $dashboard->updateDashboard();
-
+//    $common->updatePathCounts();
   }
 }
 

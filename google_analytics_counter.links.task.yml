@@ -1,6 +1,6 @@
 google_analytics_counter.admin_settings_form_tab:
   route_name: google_analytics_counter.admin_settings_form
-  title: 'Google Analytics Counter'
+  title: 'Settings'
   weight: 1
   base_route: google_analytics_counter.admin_settings_form
 
@@ -12,6 +12,6 @@ google_analytics_counter.admin_dashboard_form_tab:
 
 google_analytics_counter.admin_auth_form_tab:
   route_name: google_analytics_counter.admin_auth_form
-  title: 'GA authentication'
+  title: 'Authentication'
   weight: 4
   base_route: google_analytics_counter.admin_settings_form

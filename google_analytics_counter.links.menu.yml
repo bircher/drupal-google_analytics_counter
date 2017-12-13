@@ -17,7 +17,7 @@ google_analytics_counter.admin_dashboard_form:
   route_name: google_analytics_counter.admin_dashboard_form
   weight: 20
 google_analytics_counter.admin_auth_form:
-  title: 'GA Authentication'
+  title: 'Authentication'
   description: 'Authenticate access to a Google Analytics profile.'
   parent: google_analytics_counter.index
   route_name: google_analytics_counter.admin_auth_form

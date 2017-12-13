@@ -4,25 +4,26 @@ google_analytics_counter.admin_settings_form:
     _form: '\Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterAdminSettingsForm'
     _title: 'Google Analytics Counter'
   requirements:
-    _permission: 'administer google analytics counter'
+    _permission: 'access administration pages'
 
 google_analytics_counter.admin_dashboard_form:
   path: '/admin/config/system/google-analytics-counter/dashboard'
   defaults:
     _controller: '\Drupal\google_analytics_counter\Controller\GoogleAnalyticsCounterController::dashboard'
   requirements:
-    _permission: 'administer google analytics counter'
+    _permission: 'access administration pages'
 
 google_analytics_counter.admin_auth_form:
   path: '/admin/config/system/google-analytics-counter/authentication'
   defaults:
     _form: '\Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterAdminAuthForm'
   requirements:
-    _permission: 'administer google analytics counter'
+    _permission: 'access administration pages'
 
 google_analytics_counter.admin_dashboard_reset:
   path: '/admin/config/system/google-analytics-counter/dashboard/reset'
   defaults:
-    _controller: '\Drupal\google_analytics_counter\Controller\GoogleAnalyticsCounterController::reset'
+    _form: '\Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterResetForm'
   requirements:
-    _permission: 'administer google analytics counter'
+    _permission: 'access administration pages'
+

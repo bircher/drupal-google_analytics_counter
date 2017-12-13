@@ -2,6 +2,8 @@
 
 namespace Drupal\google_analytics_counter;
 
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -9,9 +11,8 @@ use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
 use Exception;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class GoogleAnalyticsCounterCommon.
@@ -210,7 +211,7 @@ class GoogleAnalyticsCounterCommon {
    */
   public function getWebPropertiesOptions() {
     if (!$this->isAuthenticated()) {
-      // When not authenticated, there is noting to get.
+      // When not authenticated, there is nothing to get.
       return [];
     }
 
@@ -296,12 +297,10 @@ class GoogleAnalyticsCounterCommon {
    * Programatically revoke token.
    */
   public function revoke() {
-    $gac_feed = $this->newGaFeed();
-    $gac_feed->revokeToken();
-    \Drupal::state()->setMultiple([
-      'google_analytics_counter.access_token' => '',
-      'google_analytics_counter.expires_at' => '',
-      'google_analytics_counter.refresh_token' => '',
+    $this->state->deleteMultiple([
+      'google_analytics_counter.access_token',
+      'google_analytics_counter.expires_at',
+      'google_analytics_counter.refresh_token',
     ]);
   }
 
@@ -367,22 +366,34 @@ class GoogleAnalyticsCounterCommon {
    *
    * @param int $index
    *   The index of the chunk to fetch so that it can be queued.
+   *
    * @return \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed
    *   The returned feed after the request has been made.
    */
   public function getChunkedResults($index = 0) {
+    $config = $this->config;
+
+    // Non-DRY code.
+    $step = $config->get('general_settings.data_step');
+    $chunk = $config->get('general_settings.chunk_to_fetch');
+
+    // Set the start_index .
+    $pointer = $step * $chunk + 1;
+
+    // Set the pointer.
+    $pointer += $chunk;
+
     $parameters = [
-      'profile_id' => 'ga:' . $this->config->get('general_settings.profile_id'),
-      'dimensions' => ['ga:pagePath'],
-      // Date would not be necessary for totals, but we also calculate stats of
-      // views per day, so we need it.
+      'profile_id' => 'ga:' . $config->get('general_settings.profile_id'),
       'metrics' => ['ga:pageviews'],
-      'start_date' => strtotime($this->config->get('general_settings.start_date')),
-      // Using 'tomorrow' to offset any timezone shift
-      // between the hosting and Google servers.
-      'end_date' => strtotime('tomorrow'),
-      'start_index' => ($this->config->get('general_settings.chunk_to_fetch') * $index) + 1,
-      'max_results' => $this->config->get('general_settings.chunk_to_fetch'),
+      'dimensions' => ['ga:pagePath'],
+      'start_date' => !empty($config->get('general_settings.fixed_start_date')) ? strtotime($config->get('general_settings.fixed_start_date')) : strtotime($config->get('general_settings.start_date')),
+      // If fixed dates are not in use, use 'tomorrow' to offset any timezone
+      // shift between the hosting and Google servers.
+      'end_date' => !empty($config->get('general_settings.fixed_end_date')) ? strtotime($config->get('general_settings.fixed_end_date')) : strtotime('tomorrow'),
+//      'start_index' => ($config->get('general_settings.chunk_to_fetch') * $config->get('general_settings.data_step')) + 1,
+      'start_index' => $pointer,
+      'max_results' => $config->get('general_settings.chunk_to_fetch'),
     ];
 
     $cachehere = [
@@ -390,28 +401,29 @@ class GoogleAnalyticsCounterCommon {
       'expire' => self::cacheTime(),
       'refresh' => FALSE,
     ];
+
     return $this->reportData($parameters, $cachehere);
   }
 
   /**
    * Update the path counts.
    *
-   * This function is triggered by hook_cron().
-   *
-   * @param integer $index
+   * @param int $index
    *   The index of the chunk to fetch and update.
+   *
+   * This function is triggered by hook_cron().
    */
   public function updatePathCounts($index = 0) {
     $feed = $this->getChunkedResults($index);
 
-    foreach ($feed->results->rows as $val) {
+    foreach ($feed->results->rows as $value) {
       // http://drupal.org/node/310085
       $this->connection->merge('google_analytics_counter')
-        ->key(array('pagepath_hash' => md5($val['pagePath'])))
+        ->key(array('pagepath_hash' => md5($value['pagePath'])))
         ->fields(array(
           // Escape the path see https://www.drupal.org/node/2381703
-          'pagepath' => htmlspecialchars($val['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-          'pageviews' => htmlspecialchars($val['pageviews'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+          'pagepath' => htmlspecialchars($value['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+          'pageviews' => htmlspecialchars($value['pageviews'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         ))
         ->execute();
     }
@@ -448,15 +460,15 @@ class GoogleAnalyticsCounterCommon {
    *
    * @param array $params
    *   An associative array containing:
-   *   - profile_id: required [default=config('general_settings.profile_id')]
-   *   - metrics: required.
+   *   - profile_id: required [default='ga:profile_id']
+   *   - metrics: required [ga:pageviews]
    *   - dimensions: optional [default=none]
    *   - sort_metric: optional [default=none]
    *   - filters: optional [default=none]
    *   - segment: optional [default=none]
-   *   - start_date: optional [default=GA release date]
-   *   - end_date: optional [default=today]
-   *   - start_index: optional [default=1]
+   *   - start_date: [default=-1 week]
+   *   - end_date: optional [default=tomorrow]
+   *   - start_index: [default=1]
    *   - max_results: optional [default=10,000].
    * @param array $cache_options
    *   An optional associative array containing:
@@ -468,12 +480,46 @@ class GoogleAnalyticsCounterCommon {
    *   A new GoogleAnalyticsCounterFeed object
    */
   public function reportData($params = array(), $cache_options = array()) {
-    // Add defaults.
-    $params += [
-      'profile_id' => 'ga:' . $this->config->get('general_settings.profile_id'),
-      'start_index' => 1,
-      'max_results' => $this->config->get('general_settings.chunk_to_fetch'),
-    ];
+    $config = $this->config;
+
+    // Record how long this chunk took to process.
+    $chunk_process_begin = time();
+
+    // The total number of nodes.
+    $query = $this->connection->select('node', 'n');
+    $query->addExpression('COUNT(nid)');
+    $total_nodes = $query->execute()->fetchField();
+    \Drupal::configFactory()
+      ->getEditable('google_analytics_counter.settings')
+      ->set('general_settings.total_nodes', $total_nodes)
+      ->save();
+
+
+    // Stay under the Google Analytics API quota by counting how many
+    // API retrievals were made in the last 24 hours.
+    // Todo We should take into consideration that the quota is reset at midnight PST (note: time() always returns UTC).
+    $dayquota = $config->get('general_settings.dayquota.timestamp');
+    if (\Drupal::time()->getRequestTime() - $dayquota >= 86400) {
+      // If last API request was more than a day ago, set monitoring time to now.
+      // Todo: The next two lines are not DRY.
+      \Drupal::configFactory()
+        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.timestamp', \Drupal::time()->getRequestTime())->save();
+      \Drupal::configFactory()
+        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.requests', 0)->save();
+    }
+
+    // Are we over the GA API limit?
+    // See https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas
+    $max_daily_requests = $config->get('general_settings.api_dayquota');
+    if ($config->get('general_settings.dayquota.requests') > $max_daily_requests) {
+      $t_args = [
+        ':href' => Url::fromRoute('google_analytics_counter.settings', [], ['absolute' => TRUE])->toString(),
+        '@href' => 'the Google Analytics Counter settings page',
+        '%max_daily_requests' => $max_daily_requests,
+        '%day_quota' => ($dayquota + 86400 - \Drupal::time()->getRequestTime()),
+      ];
+      $this->logger->error('Google Analytics API quota of %max_daily_requests requests has been reached. The system will not fetch data from Google Analytics for the next %day_quota seconds. See <a href=:href>@href</a> for more info.', $t_args);
+    }
 
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed $ga_feed */
     $ga_feed = $this->newGaFeed();
@@ -481,16 +527,117 @@ class GoogleAnalyticsCounterCommon {
       throw new \RuntimeException($this->t('The GoogleAnalyticsCounterFeed could not be initialized, is it authenticated?'));
     }
 
-    // Here would be a good point to catch how many requests were made to google
-    // to stay below the api limit or alter the parameters in an alter hook etc.
     $ga_feed->queryReportFeed($params, $cache_options);
+
+//    DEBUG:
+//    echo '<pre>';
+//    // The returned object.
+//    // print_r($ga_feed);
+//    // Current Google Query.
+//    print_r($ga_feed->results->selfLink);
+//    echo '</pre>';
+//    exit;
 
     // Handle errors here too.
     if (!empty($ga_feed->error)) {
       throw new \RuntimeException($ga_feed->error);
     }
 
+    // Don't write anything to google_analytics_counter if this Google Analytics
+    // data comes from cache (would be writing the same again).
+    if (!$ga_feed->fromCache) {
+
+      // This was a live request. Increase the Google Analytics request limit tracker.
+      \Drupal::configFactory()
+        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.timestamp', $config->get('general_settings.dayquota.timestamp'))->save();
+      \Drupal::configFactory()
+        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.requests', ($config->get('general_settings.dayquota.requests') + 1))->save();
+
+      // If NULL then there is no error.
+      if (!empty($ga_feed->error)) {
+        $t_args = [
+          ':href' => Url::fromRoute('google_analytics_counter.authentication', [], ['absolute' => TRUE])
+            ->toString(),
+          '@href' => 'here',
+          '%new_data_error' => $ga_feed->error,
+        ];
+        $this->logger->error('Problem fetching data from Google Analytics: %new_data_error. Did you authenticate any Google Analytics profile? See <a href=:href>@href</a>.', $t_args);
+      }
+      else {
+        foreach ($ga_feed->results->rows as $value) {
+          $value['pagePath'] = SafeMarkup::checkPlain(utf8_encode($value['pagePath']));
+          $value['pagePath'] = Unicode::substr($value['pagePath'], 0, 2048);
+
+          db_merge('google_analytics_counter')
+            ->key(['pagepath_hash' => md5($value['pagePath'])])
+            ->fields([
+              'pagepath' => $value['pagePath'],
+              'pageviews' => SafeMarkup::checkPlain($value['pageviews']),
+            ])
+            ->execute();
+        }
+      }
+    }
+
+    // The total number of pagePaths for this profile from start_date to end_date
+    $total_paths = $ga_feed->results->totalResults;
+    // Store it in configuration.
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_paths', $total_paths)->save();
+
+    // The total number of pageViews for this profile from start_date to end_date
+    $total_pageviews = $ga_feed->results->totalsForAllResults['pageviews'];
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_pageviews', $total_pageviews)->save();
+
+    // How many results to ask from Google Analytics in one request.
+    // Default of 1000 to fit most systems (for example those with no external cron).
+    $chunk = $config->get('general_settings.chunk_to_fetch');
+
+    // In case there are more than $chunk path/counts to retrieve from
+    // Google Analytics, do one chunk at a time and register that in $step.
+    $step = $config->get('general_settings.data_step');
+
+    // Which node to look for first. Must be between 1 - infinity.
+    $pointer = $step * $chunk + 1;
+
+    // Set the pointer.
+    $pointer += $chunk;
+
+    $t_args = [
+      '@size_of' => sizeof($ga_feed->results->rows),
+      '@first' => ($pointer - $chunk),
+      '@second' => ($pointer - $chunk - 1 + sizeof($ga_feed->results->rows)),
+    ];
+    $this->logger->info('Retrieved @size_of items from Google Analytics data for paths @first - @second.', $t_args);
+
+    // OK now increase or zero $step
+    if ($pointer <= $total_paths) {
+      // If there are more results than what we've reached with this chunk,
+      // increase step to look further during the next run.
+      $new_step = $step + 1;
+    }
+    else {
+      $new_step = 0;
+    }
+
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.data_step', $new_step)->save();
+
+    // Record how long this chunk took to process.
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.chunk_process_time', time() - $chunk_process_begin)->save();
+
     return $ga_feed;
   }
+
+  /**
+   * Prints a warning message when not authenticated.
+   */
+  public function noProfileMessage() {
+    $t_args = [
+      ':href' => Url::fromRoute('google_analytics_counter.admin_auth_form', [], ['absolute' => TRUE])
+        ->toString(),
+      '@href' => 'authenticate here',
+    ];
+    drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
+  }
+
 
 }

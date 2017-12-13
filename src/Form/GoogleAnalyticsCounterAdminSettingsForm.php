@@ -117,6 +117,13 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     );
 
+    // GA starting date settings.
+    $form['start_date_details'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Start date for GA queries'),
+      '#open' => TRUE,
+    ];
+
     // Todo. Could be more flexible.
     $start_date = [
       '-1 day' => $this->t('-1 day'),
@@ -128,14 +135,63 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     ];
 
     // Todo: Could be more flexible.
-    $form['start_date'] = array(
+    $form['start_date_details']['start_date'] = array(
       '#type' => 'select',
       '#title' => $this->t('Start Date for Google Analytics queries'),
       '#default_value' => $config->get('general_settings.start_date'),
-      '#description' => $this->t('The earliest valid start date for Google Analytics is 2005-01-01.'),
-      '#required' => TRUE,
+      '#description' => $this->t('The earliest valid start date for Google Analytics is 2005-01-01. Disabled if OVERRIDE is checked'),
       '#options' => $start_date,
+      '#states' => [
+        'disabled' => [
+          ':input[name="advanced_date_checkbox"]' => ['checked' => TRUE],
+        ],
+        'required' => [
+          ':input[name="advanced_date_checkbox"]' => ['checked' => FALSE],
+        ],
+      ],
     );
+
+    // GA starting date settings.
+    $form['start_date_details']['advanced_date'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Override with a fixed start date'),
+      '#states' => [
+        'open' => [
+          ':input[name="advanced_date_checkbox"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    $form['start_date_details']['advanced_date']['advanced_date_checkbox'] = [
+      '#type' => 'checkbox',
+      '#title' => '<strong>' . $this->t('OVERRIDE') . '</strong>',
+      '#default_value' => $config->get('general_settings.advanced_date_checkbox'),
+      '#description' => t('Select if you wish to override the start date for Google Analytics queries with a fixed <strong>start</strong> and a fixed <strong>end</strong> date.'),
+    ];
+
+    $form['start_date_details']['advanced_date']['fixed_start_date'] = [
+      '#type' => 'date',
+      '#title' => $this->t('Start date'),
+      '#description' => $this->t('Set a fixed start date for Google Analytics queries.'),
+      '#default_value' => $config->get('general_settings.fixed_start_date'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="advanced_date_checkbox"]' => ['checked' => FALSE],
+        ],
+      ],
+    ];
+
+    $form['start_date_details']['advanced_date']['fixed_end_date'] = [
+      '#type' => 'date',
+      '#title' => $this->t('End date'),
+      '#description' => $this->t('Set a fixed end date for Google Analytics queries.'),
+      '#default_value' => $config->get('general_settings.fixed_end_date'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="advanced_date_checkbox"]' => ['checked' => FALSE],
+        ],
+      ],
+    ];
 
     $form['overwrite_statistics'] = array(
       '#type' => 'checkbox',
@@ -187,20 +243,16 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Redirect URI'),
       '#default_value' => $config->get('general_settings.redirect_uri'),
       '#size' => 30,
-      '#description' => $this->t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Leave blank to use default (blank will work for most cases).<br /> Default: @default_uri/authentication', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
+      '#description' => $this->t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Leave blank to use default (blank will work for most cases).<br /> Default: <strong>@default_uri/authentication</strong>', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
       '#weight' => -7,
     );
 
+    // Stuck with the weak test for now.
     if ($config->get('general_settings.profile_id') <> '') {
       return parent::buildForm($form, $form_state);
     }
     else {
-      $t_args = [
-        ':href' => Url::fromRoute('google_analytics_counter.admin_auth_form', [], ['absolute' => TRUE])
-          ->toString(),
-        '@href' => 'authenticate here',
-      ];
-      drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning', FALSE);
+      $this->common->noProfileMessage();
       return parent::buildForm($form, $form_state);
     }
   }
@@ -210,11 +262,15 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('google_analytics_counter.settings');
+
     $config->set('general_settings.cron_interval', $form_state->getValue('cron_interval'))
       ->set('general_settings.chunk_to_fetch', $form_state->getValue('chunk_to_fetch'))
       ->set('general_settings.api_dayquota', $form_state->getValue('api_dayquota'))
       ->set('general_settings.cache_length', $form_state->getValue('cache_length') * 3600)
       ->set('general_settings.start_date', $form_state->getValue('start_date'))
+      ->set('general_settings.advanced_date_checkbox', $form_state->getValue('advanced_date_checkbox'))
+      ->set('general_settings.fixed_start_date', $form_state->getValue('advanced_date_checkbox') == 1 ? $form_state->getValue('fixed_start_date') : '')
+      ->set('general_settings.fixed_end_date', $form_state->getValue('advanced_date_checkbox') == 1 ? $form_state->getValue('fixed_end_date') : '')
       ->set('general_settings.overwrite_statistics', $form_state->getValue('overwrite_statistics'))
       ->set('general_settings.profile_id', $form_state->getValue('profile_id'))
       ->set('general_settings.client_id', $form_state->getValue('client_id'))

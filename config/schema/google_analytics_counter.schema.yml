@@ -34,7 +34,16 @@ google_analytics_counter.settings:
           label: 'The minimum time in hours to elapse between getting fresh data for the same query from Google Analytics'
         start_date:
           type: string
-          label: 'The start date for GA queries'
+          label: 'The start date for Google Analytics queries'
+        advanced_date_checkbox:
+          type: boolean
+          label: 'Whether to override the start date with a fixed start and end date'
+        fixed_start_date:
+          type: string
+          label: 'The fixed start date for Google Analytics queries'
+        fixed_end_date:
+          type: string
+          label: 'The fixed end date for Google Analytics queries'
         overwrite_statistics:
           type: boolean
           label: 'Override the counter of the core statistics module'
@@ -50,12 +59,12 @@ google_analytics_counter.settings:
         redirect_uri:
           type: string
           label: 'Used to override the host for the callback uri'
-        total_hits:
+        total_pageviews:
           type: string
-          label: 'The total number of hits registered by Google Analytics under this profile'
+          label: 'The total number of pageviews for this profile'
         total_paths:
           type: integer
-          label: 'Number of paths on this site as currently recorded by Google Analytics'
+          label: 'Number of paths for this profile'
         total_nodes:
           type: string
           label: 'Total number of nodes on this site'

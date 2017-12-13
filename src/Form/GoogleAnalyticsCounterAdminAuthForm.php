@@ -4,9 +4,11 @@ namespace Drupal\google_analytics_counter\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+
 
 /**
  * Class GoogleAnalyticsCounterAdminAuthForm.
@@ -98,7 +100,6 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     return $form;
   }
 
-
   /**
    * Steps through the OAuth process, revokes tokens and saves profiles.
    */
@@ -111,7 +112,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
         $this->common->beginAuthentication();
         break;
       case 'Revoke access token':
-        $this->common->revoke();
+        $form_state->setRedirectUrl(Url::fromRoute('google_analytics_counter.admin_dashboard_reset'));
         break;
     }
   }
