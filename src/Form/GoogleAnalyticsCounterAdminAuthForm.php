@@ -70,31 +70,31 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     $this->common->newGaFeed();
 
     if ($this->common->isAuthenticated()) {
-      $form['revoke'] = array(
+      $form['revoke'] = [
         '#type' => 'fieldset',
         '#title' => $this->t('Revoke access and logout'),
         '#description' => $this->t('Revoke your access token to Google Analytics. This action will log you out of your Google Analytics account and stop all reports from displaying on your site.'),
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
         '#weight' => 5,
-      );
-      $form['revoke']['revoke_submit'] = array(
+      ];
+      $form['revoke']['revoke_submit'] = [
         '#type' => 'submit',
         '#value' => $this->t('Revoke access token'),
-      );
+      ];
     }
     else {
-      $form['setup'] = array(
+      $form['setup'] = [
         '#type' => 'fieldset',
         '#title' => $this->t('Initial setup'),
         '#description' => $this->t("When you submit this form, you will be redirected to Google for authentication. Login with the account that has credentials to the Google Analytics profile you'd like to use."),
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
-      );
-      $form['setup']['setup_submit'] = array(
+      ];
+      $form['setup']['setup_submit'] = [
         '#type' => 'submit',
         '#value' => $this->t('Start setup and authorize account'),
-      );
+      ];
     }
 
     return $form;

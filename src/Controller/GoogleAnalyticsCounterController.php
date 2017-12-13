@@ -8,7 +8,6 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
 use Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterResetForm;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
-use Drupal\msk\MskEnvironment;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -90,8 +89,13 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       ':start_date' => \Drupal::service('date.formatter')->format(\Drupal::state()->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'medium'),
       ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
     ];
+    $t_args = [
+      ':fixed_start_date' => $config->get('general_settings.fixed_start_date'),
+      ':fixed_end_date' => $config->get('general_settings.fixed_end_date'),
+      ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
+    ];
     $build['google_info']['total_pageviews'] = [
-      '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :last_cron_run, and :start_date: <strong>:total_pageviews</strong>', $t_args),
+      '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :fixed_start_date, and :fixed_end_date: <strong>:total_pageviews</strong>', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -191,8 +195,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $temp = $config->get('general_settings.cron_next_execution') - \Drupal::time()->getRequestTime();
-    // Modification for MSK.
-    if ($temp < 0 && MskEnvironment::isLocal()) {
+    if ($temp < 0) {
       // Run cron immediately.
       $destination = \Drupal::destination()->getAsArray();
       $t_args = [

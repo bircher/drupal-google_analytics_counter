@@ -81,15 +81,15 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('google_analytics_counter.settings');
 
-    $form['cron_interval'] = array(
+    $form['cron_interval'] = [
       '#type' => 'number',
       '#title' => $this->t('Minimum time to wait before fetching Google Analytics data'),
       '#default_value' => $config->get('general_settings.cron_interval'),
       '#description' => $this->t('Google Analytics data is fetched and processed during cron. If cron runs too frequently, the Google Analytics daily quota may be <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas" target="_blank">exceeded</a>.<br />Set the minimum number of <em>minutes</em> that need to pass before the Google Analytics Counter cron runs. Default: 30 minutes.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['chunk_to_fetch'] = array(
+    $form['chunk_to_fetch'] = [
       '#type' => 'number',
       '#title' => $this->t('Number of items to fetch from Google Analytics in one request'),
       '#default_value' => $config->get('general_settings.chunk_to_fetch'),
@@ -97,9 +97,9 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#max' => 10000,
       '#description' => $this->t('How many items will be fetched from Google Analytics in one request (during a cron run). The maximum allowed by Google is 10000. Default: 1000 items.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['api_dayquota'] = array(
+    $form['api_dayquota'] = [
       '#type' => 'number',
       '#title' => $this->t('Maximum GA API requests per day'),
       '#default_value' => $config->get('general_settings.api_dayquota'),
@@ -107,20 +107,20 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#maxlength' => 9,
       '#description' => $this->t('This is the daily limit of requests <strong>per view (profile)</strong> per day (cannot be increased). You don\'t need to change this value until Google changes their quota policy. <br />See <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas" target="_blank">Limits and Quotas on API Requests</a> for information on Google\'s quota policies. To exceed Google\'s quota limits, look for <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas#full_quota" target="_blank">Exceeding quota limits</a> on the same page.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['cache_length'] = array(
+    $form['cache_length'] = [
       '#type' => 'number',
       '#title' => t('Google Analytics query cache'),
       '#description' => t('Limit the minimum time in hours to elapse between getting fresh data for the same query from Google Analytics. Defaults to 1 day.'),
       '#default_value' => $config->get('general_settings.cache_length') / 3600,
       '#required' => TRUE,
-    );
+    ];
 
     // GA starting date settings.
     $form['start_date_details'] = [
       '#type' => 'details',
-      '#title' => $this->t('Start date for GA queries'),
+      '#title' => $this->t('Query Dates for Google Analytics'),
       '#open' => TRUE,
     ];
 
@@ -135,11 +135,11 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     ];
 
     // Todo: Could be more flexible.
-    $form['start_date_details']['start_date'] = array(
+    $form['start_date_details']['start_date'] = [
       '#type' => 'select',
-      '#title' => $this->t('Start Date for Google Analytics queries'),
+      '#title' => $this->t('Start date for Google Analytics queries'),
       '#default_value' => $config->get('general_settings.start_date'),
-      '#description' => $this->t('The earliest valid start date for Google Analytics is 2005-01-01. Disabled if OVERRIDE is checked'),
+      '#description' => $this->t('The earliest valid start date for Google Analytics is 2005-01-01.'),
       '#options' => $start_date,
       '#states' => [
         'disabled' => [
@@ -148,13 +148,16 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
         'required' => [
           ':input[name="advanced_date_checkbox"]' => ['checked' => FALSE],
         ],
+        'visible' => [
+          ':input[name="advanced_date_checkbox"]' => ['checked' => FALSE],
+        ],
       ],
-    );
+    ];
 
     // GA starting date settings.
     $form['start_date_details']['advanced_date'] = [
       '#type' => 'details',
-      '#title' => $this->t('Override with a fixed start date'),
+      '#title' => $this->t('Query with fixed dates'),
       '#states' => [
         'open' => [
           ':input[name="advanced_date_checkbox"]' => ['checked' => TRUE],
@@ -164,15 +167,15 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $form['start_date_details']['advanced_date']['advanced_date_checkbox'] = [
       '#type' => 'checkbox',
-      '#title' => '<strong>' . $this->t('OVERRIDE') . '</strong>',
+      '#title' => '<strong>' . $this->t('FIXED DATES') . '</strong>',
       '#default_value' => $config->get('general_settings.advanced_date_checkbox'),
-      '#description' => t('Select if you wish to override the start date for Google Analytics queries with a fixed <strong>start</strong> and a fixed <strong>end</strong> date.'),
+      '#description' => t('Select if you wish to query Google Analytics with a fixed start date and a fixed end date.'),
     ];
 
     $form['start_date_details']['advanced_date']['fixed_start_date'] = [
       '#type' => 'date',
-      '#title' => $this->t('Start date'),
-      '#description' => $this->t('Set a fixed start date for Google Analytics queries.'),
+      '#title' => $this->t('Fixed start date'),
+      '#description' => $this->t('Set a fixed start date for Google Analytics queries. Disabled if FIXED DATES is <strong>unchecked</strong>.'),
       '#default_value' => $config->get('general_settings.fixed_start_date'),
       '#states' => [
         'disabled' => [
@@ -183,8 +186,8 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $form['start_date_details']['advanced_date']['fixed_end_date'] = [
       '#type' => 'date',
-      '#title' => $this->t('End date'),
-      '#description' => $this->t('Set a fixed end date for Google Analytics queries.'),
+      '#title' => $this->t('Fixed end date'),
+      '#description' => $this->t('Set a fixed end date for Google Analytics queries. Disabled if FIXED DATES is <strong>unchecked</strong>.'),
       '#default_value' => $config->get('general_settings.fixed_end_date'),
       '#states' => [
         'disabled' => [
@@ -193,59 +196,59 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       ],
     ];
 
-    $form['overwrite_statistics'] = array(
+    $form['overwrite_statistics'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Override the counter of the core statistics module'),
       '#default_value' => $config->get('general_settings.overwrite_statistics'),
       '#disabled' => !\Drupal::moduleHandler()->moduleExists('statistics'),
       '#description' => $this->t('Overwriting the total count of cores statistics module is not advised but may be useful in some situations.')
-    );
+    ];
 
     $options = $this->common->getWebPropertiesOptions();
     if (!$options) {
       $options = [$config->get('general_settings.profile_id') => 'Un-authenticated (' . $config->get('general_settings.profile_id') . ')'];
     }
-    $form['profile_id'] = array(
+    $form['profile_id'] = [
       '#type' => 'select',
       '#title' => $this->t('Reports profile'),
       '#options' => $options,
       '#default_value' => $config->get('general_settings.profile_id'),
       '#description' => $this->t('Choose your Google Analytics profile. The options depend on the authenticated account.'),
-    );
+    ];
 
-    $form['setup'] = array(
+    $form['setup'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Initial setup'),
       '#description' => $this->t("The google key details can only be changed when not authenticated."),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
       '#disabled' => \Drupal::service('google_analytics_counter.common')->isAuthenticated(),
-    );
-    $form['setup']['client_id'] = array(
+    ];
+    $form['setup']['client_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Client ID'),
       '#default_value' => $config->get('general_settings.client_id'),
       '#size' => 30,
       '#description' => $this->t('Client ID created for the app in the access tab of the <a href="http://code.google.com/apis/console" target="_blank">Google API Console</a>'),
       '#weight' => -9,
-    );
-    $form['setup']['client_secret'] = array(
+    ];
+    $form['setup']['client_secret'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Client Secret'),
       '#default_value' => $config->get('general_settings.client_secret'),
       '#size' => 30,
       '#description' => $this->t('Client Secret created for the app in the Google API Console'),
       '#weight' => -8,
-    );
+    ];
 
-    $form['setup']['redirect_uri'] = array(
+    $form['setup']['redirect_uri'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Redirect URI'),
       '#default_value' => $config->get('general_settings.redirect_uri'),
       '#size' => 30,
       '#description' => $this->t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Leave blank to use default (blank will work for most cases).<br /> Default: <strong>@default_uri/authentication</strong>', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
       '#weight' => -7,
-    );
+    ];
 
     // Stuck with the weak test for now.
     if ($config->get('general_settings.profile_id') <> '') {

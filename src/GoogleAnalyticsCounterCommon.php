@@ -142,8 +142,8 @@ class GoogleAnalyticsCounterCommon {
         return $gac_feed;
       }
       catch (Exception $e) {
-        drupal_set_message(t("There was an authentication error. Message: %message",
-          array('%message' => $e->getMessage())), 'error', FALSE
+        drupal_set_message($this->t("There was an authentication error. Message: %message",
+          ['%message' => $e->getMessage()]), 'error', FALSE
         );
         return NULL;
       }
@@ -168,8 +168,8 @@ class GoogleAnalyticsCounterCommon {
         drupal_set_message(t('You have been successfully authenticated.'), 'status', FALSE);
       }
       catch (Exception $e) {
-        drupal_set_message(t("There was an authentication error. Message: %message",
-          array('%message' => $e->getMessage())), 'error', FALSE
+        drupal_set_message($this->t("There was an authentication error. Message: %message",
+          ['%message' => $e->getMessage()]), 'error', FALSE
         );
         return NULL;
       }
@@ -351,11 +351,11 @@ class GoogleAnalyticsCounterCommon {
     // If we selected to override the storage of the statistics module.
     if ($this->config->get('general_settings.overwrite_statistics')) {
       $this->connection->merge('node_counter')
-        ->key(array('nid' => $nid))
-        ->fields(array(
+        ->key(['nid' => $nid])
+        ->fields([
           'totalcount' => $sum_of_pageviews,
           'timestamp' => \Drupal::time()->getRequestTime(),
-        ))
+        ])
         ->execute();
     }
 
@@ -419,12 +419,12 @@ class GoogleAnalyticsCounterCommon {
     foreach ($feed->results->rows as $value) {
       // http://drupal.org/node/310085
       $this->connection->merge('google_analytics_counter')
-        ->key(array('pagepath_hash' => md5($value['pagePath'])))
-        ->fields(array(
+        ->key(['pagepath_hash' => md5($value['pagePath'])])
+        ->fields([
           // Escape the path see https://www.drupal.org/node/2381703
           'pagepath' => htmlspecialchars($value['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
           'pageviews' => htmlspecialchars($value['pageviews'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        ))
+        ])
         ->execute();
     }
 

@@ -9,8 +9,8 @@ general_settings:
   cache_length: 86400
   start_date: '-1 day'
   advanced_date_checkbox: false
-  fixed_start_date: '2005-01-01'
-  fixed_end_date: '2005-01-01'
+  fixed_start_date: ''
+  fixed_end_date: ''
   overwrite_statistics: false
   profile_id: ''
   client_id: ''

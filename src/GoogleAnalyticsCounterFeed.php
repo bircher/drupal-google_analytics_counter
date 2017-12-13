@@ -102,14 +102,14 @@ class GoogleAnalyticsCounterFeed {
    *   The url to authorize.
    */
   public function createAuthUrl($client_id, $redirect_uri) {
-    $params = array(
+    $params = [
       'response_type=code',
       'redirect_uri=' . $redirect_uri,
       'client_id=' . urlencode($client_id),
       'scope=' . self::SCOPE,
       'access_type=offline',
       'approval_prompt=force',
-    );
+    ];
 
     $params = implode('&', $params);
     return self::OAUTH2_AUTH_URL . "?$params";
@@ -127,29 +127,29 @@ class GoogleAnalyticsCounterFeed {
    */
   protected function fetchToken($client_id, $client_secret, $redirect_uri, $refresh_token = NULL) {
     if ($refresh_token) {
-      $params = array(
+      $params = [
         'client_id=' . $client_id,
         'client_secret=' . $client_secret,
         'refresh_token=' . $refresh_token,
         'grant_type=refresh_token',
-      );
+      ];
     }
     else {
-      $params = array(
+      $params = [
         'code=' . $_GET['code'],
         'grant_type=authorization_code',
         'redirect_uri=' . $redirect_uri,
         'client_id=' . $client_id,
         'client_secret=' . $client_secret,
-      );
+      ];
     }
 
     try {
       $client = \Drupal::httpClient();
-      $this->response = $client->post(self::OAUTH2_TOKEN_URI, array(
-        'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
+      $this->response = $client->post(self::OAUTH2_TOKEN_URI, [
+        'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
         'body' => implode('&', $params),
-      ));
+      ]);
     }
     catch (RequestException $e) {
       $this->response = $e->getResponse();
@@ -246,10 +246,10 @@ class GoogleAnalyticsCounterFeed {
 
     try {
       $client = \Drupal::httpClient();
-      $this->response = $client->post(self::OAUTH2_REVOKE_URI, array(
-        'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
+      $this->response = $client->post(self::OAUTH2_REVOKE_URI, [
+        'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
         'body' => 'token=' . $token,
-      ));
+      ]);
     }
     catch (RequestException $e) {
       $this->response = $e->getResponse();
@@ -272,7 +272,7 @@ class GoogleAnalyticsCounterFeed {
     if ($token == NULL) {
       $token = $this->accessToken;
     }
-    return array('Authorization' => 'Bearer ' . $token);
+    return ['Authorization' => 'Bearer ' . $token];
   }
 
   /**
@@ -302,26 +302,26 @@ class GoogleAnalyticsCounterFeed {
    * Public query method for all Core Reporting API features.
    */
   public function query($url, $params, $method, $headers, $cache_options = array()) {
-    $params_defaults = array(
+    $params_defaults = [
       'start-index' => 1,
       'max-results' => 1000,
-    );
+    ];
     $params += $params_defaults;
 
     // Provide cache defaults if a developer did not override them.
-    $cache_defaults = array(
+    $cache_defaults = [
       'cid' => NULL,
       'expire' => GoogleAnalyticsCounterCommon::cacheTime(),
       'refresh' => FALSE,
-    );
+    ];
     $cache_options += $cache_defaults;
 
     // Provide a query MD5 for the cid if the developer did not provide one.
     if (empty($cache_options['cid'])) {
-      $cache_options['cid'] = 'GoogleAnalyticsCounterFeed:' . md5(serialize(array_merge($params, array(
+      $cache_options['cid'] = 'GoogleAnalyticsCounterFeed:' . md5(serialize(array_merge($params, [
         $url,
         $method,
-      ))));
+      ])));
     }
 
     $cache = \Drupal::cache()->get($cache_options['cid']);
@@ -350,10 +350,10 @@ class GoogleAnalyticsCounterFeed {
    * Execute a query.
    */
   protected function request($url, $params = array(), $headers = array(), $method = 'GET') {
-    $options = array(
+    $options = [
       'method' => $method,
       'headers' => $headers,
-    );
+    ];
 
     if (count($params) > 0) {
       if ($method == 'GET') {
@@ -376,11 +376,11 @@ class GoogleAnalyticsCounterFeed {
         // @todo check it!!! it's temp code.
         $this->response->setBody('');
       }
-      $error_vars = array(
+      $error_vars = [
         '@code' => $this->response->getStatusCode(),
         '@message' => $this->response->getReasonPhrase(),
         '@details' => strip_tags($this->response->getBody()->__toString()),
-      );
+      ];
       $this->error = $this->t('Code: @code.  Error: @message.  Message: @details', $error_vars);
       \Drupal::logger('google_analytics_counter')
         ->error('Code: @code.  Error: @message.  Message: @details', $error_vars);
@@ -400,9 +400,9 @@ class GoogleAnalyticsCounterFeed {
    * Query Management API - WebProperties.
    */
   public function queryWebProperties($params = array(), $cache_options = array()) {
-    $params += array(
+    $params += [
       'account-id' => '~all',
-    );
+    ];
     $this->setQueryPath('management/accounts/' . $params['account-id'] . '/webproperties');
     $this->query($this->queryPath, $params, 'GET', $this->generateAuthHeader(), $cache_options);
     return $this;
@@ -412,10 +412,10 @@ class GoogleAnalyticsCounterFeed {
    * Query Management API - Profiles.
    */
   public function queryProfiles($params = array(), $cache_options = array()) {
-    $params += array(
+    $params += [
       'account-id' => '~all',
       'web-property-id' => '~all',
-    );
+    ];
     $this->setQueryPath('management/accounts/' . $params['account-id'] . '/webproperties/' . $params['web-property-id'] . '/profiles');
     $this->query($this->queryPath, $params, 'GET', $this->generateAuthHeader(), $cache_options);
 
@@ -435,11 +435,11 @@ class GoogleAnalyticsCounterFeed {
    * Query Management API - Goals.
    */
   public function queryGoals($params = array(), $cache_options = array()) {
-    $params += array(
+    $params += [
       'account-id' => '~all',
       'web-property-id' => '~all',
       'profile-id' => '~all',
-    );
+    ];
     $this->setQueryPath('management/accounts/' . $params['account-id'] . '/webproperties/' . $params['web-property-id'] . '/profiles/' . $params['profile-id'] . '/goals');
     $this->query($this->queryPath, $params, 'GET', $this->generateAuthHeader(), $cache_options);
     return $this;
@@ -455,7 +455,7 @@ class GoogleAnalyticsCounterFeed {
   public function queryReportFeed($params = array(), $cache_options = array()) {
 
     // Provide defaults if the developer did not override them.
-    $params += array(
+    $params += [
       'profile_id' => 0,
       'dimensions' => NULL,
       'metrics' => 'ga:visits',
@@ -466,9 +466,9 @@ class GoogleAnalyticsCounterFeed {
       'end_date' => NULL,
       'start_index' => 1,
       'max_results' => 10000,
-    );
+    ];
 
-    $parameters = array('ids' => $params['profile_id']);
+    $parameters = ['ids' => $params['profile_id']];
 
     if (is_array($params['dimensions'])) {
       $parameters['dimensions'] = implode(',', $params['dimensions']);
@@ -538,8 +538,8 @@ class GoogleAnalyticsCounterFeed {
    */
   protected function sanitizeReport() {
     // Named keys for report values.
-    $this->results->rawRows = isset($this->results->rows) ? $this->results->rows : array();
-    $this->results->rows = array();
+    $this->results->rawRows = isset($this->results->rows) ? $this->results->rows : [];
+    $this->results->rows = [];
     foreach ($this->results->rawRows as $row_key => $row_value) {
       foreach ($row_value as $item_key => $item_value) {
         $this->results->rows[$row_key][str_replace('ga:', '', $this->results->columnHeaders[$item_key]->name)] = $item_value;
@@ -549,7 +549,7 @@ class GoogleAnalyticsCounterFeed {
 
     // Named keys for report totals.
     $this->results->rawTotals = $this->results->totalsForAllResults;
-    $this->results->totalsForAllResults = array();
+    $this->results->totalsForAllResults = [];
     foreach ($this->results->rawTotals as $row_key => $row_value) {
       $this->results->totalsForAllResults[str_replace('ga:', '', $row_key)] = $row_value;
     }
