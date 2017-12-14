@@ -83,36 +83,38 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#markup' => '<h6>' . $this->t('The values in bold are updated during cron runs.') . '</h6>',
     ];
 
-    // Todo: Why use state for last_cron_run, not configuration?
-    if (!empty($config->get('general_settings.fixed_start_date'))) {
-      $t_args = [
-        ':start_date' => \Drupal::service('date.formatter')
-          ->format(strtotime($config->get('general_settings.fixed_start_date')), 'custom', 'M j, Y'),
-        ':end_date' => \Drupal::service('date.formatter')
-          ->format(strtotime($config->get('general_settings.fixed_end_date')), 'custom', 'M j, Y'),
-        ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
-      ];
-    }
-    else {
-      $t_args = [
-        ':start_date' => \Drupal::service('date.formatter')
-          ->format(\Drupal::state()
-            ->get('google_analytics_counter.last_cron_run'), 'custom', 'M j, Y'),
-        ':end_date' => \Drupal::service('date.formatter')
-          ->format(\Drupal::state()
-              ->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'custom', 'M j, Y'),
-        ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
-      ];
-    }
+    $t_args = $this->getStartDateEndDate();
+    $t_args += [':total_pageviews' => number_format($config->get('general_settings.total_pageviews'))];
     $build['google_info']['total_pageviews'] = [
       '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_pageviews</strong>', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
-    $total_paths = $config->get('general_settings.total_paths');
+    $t_args = $this->getStartDateEndDate();
+    $t_args += [':total_paths' => number_format($config->get('general_settings.total_paths'))];
     $build['google_info']['total_paths'] = [
-      '#markup' => $this->t('The total number of paths recorded by Google Analytics on this site: <strong>:total_paths</strong>.', [':total_paths' => number_format($total_paths)]) . '<br />' . $this->t('The total number of paths is cumulative and may include paths that no longer exist on the site but are still in Google.'),
+      '#markup' => $this->t('The total number of paths recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_paths</strong>.', $t_args),
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+    ];
+
+    if ($config->get('general_settings.most_recent_query') == '') {
+      $t_args = [':most_recent_query' => 'No queries have been run yet.'];
+    }
+    else {
+      $t_args = [':most_recent_query' => $config->get('general_settings.most_recent_query')];
+    }
+
+    // Google Query
+    $build['google_info']['google_query'] = [
+      '#type' => 'details',
+      '#title' => $this->t('most recent query to Google'),
+      '#open' => FALSE,
+    ];
+
+    $build['google_info']['google_query']['most_recent_query'] = [
+      '#markup' => '<strong>' . $this->t(':most_recent_query', $t_args) . '</strong><br /><br />' . $this->t('The access_token needs to be included with the query. Get the access_token with <em>drush state-get google_analytics_counter.access_token</em>'),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -157,9 +159,8 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
     $build['google_info']['assume_cron_frequency'] = [
       '#markup' => $this->t('Assuming cron runs every hour, the next cron run will take place at <strong>:sec2hms</strong>.',
-        // WTH Drupal. Won't print a custom time when there is a colon in format?
-//      [':sec2hms' => \Drupal::service('date.formatter')->format($config->get('general_settings.cron_next_execution') + 3600, 'custom', 'g:i a')]) . '</p>';
-        [':sec2hms' => \Drupal::service('date.formatter')->format($config->get('general_settings.cron_next_execution') + 3600, 'medium')]),
+      // WTH Drupal. Won't print a custom time when there is a colon in format?
+      [':sec2hms' => \Drupal::service('date.formatter')->format($config->get('general_settings.cron_next_execution') + 3600, 'custom', 'g i a')]) . '</p>',
     ];
 
     // The Drupal section
@@ -234,7 +235,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       ];
     }
 
-    if ($this->common->isAuthenticated()) {
+    if ($this->common->isAuthenticated() === TRUE) {
       return $build;
     }
     else {
@@ -265,6 +266,36 @@ class GoogleAnalyticsCounterController extends ControllerBase {
   private function getCount($table) {
     $query = $this->database->select($table, 't');
     return $query->countQuery()->execute()->fetchField();
+  }
+
+  /**
+   * Calculates total pageviews for fixed start and end date or for time ago, like '-1 day'.
+   *
+   * @return array
+   */
+  protected function getStartDateEndDate() {
+    $config = $this->config;
+
+    if (!empty($config->get('general_settings.fixed_start_date'))) {
+      $t_args = [
+        ':start_date' => \Drupal::service('date.formatter')
+          ->format(strtotime($config->get('general_settings.fixed_start_date')), 'custom', 'M j, Y'),
+        ':end_date' => \Drupal::service('date.formatter')
+          ->format(strtotime($config->get('general_settings.fixed_end_date')), 'custom', 'M j, Y'),
+      ];
+      return $t_args;
+    }
+    else {
+      $t_args = [
+        ':start_date' => \Drupal::service('date.formatter')
+          ->format(\Drupal::state()
+              ->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'custom', 'M j, Y'),
+        ':end_date' => \Drupal::service('date.formatter')
+          ->format(\Drupal::state()
+            ->get('google_analytics_counter.last_cron_run'), 'custom', 'M j, Y'),
+      ];
+      return $t_args;
+    }
   }
 
 }

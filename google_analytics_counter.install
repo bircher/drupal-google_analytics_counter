@@ -71,3 +71,12 @@ function google_analytics_counter_schema() {
   return $schema;
 }
 
+/**
+ * Implements hook_uninstall().
+ */
+function google_analytics_counter_uninstall() {
+  /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
+  $common = Drupal::service('google_analytics_counter.common');
+  // Revoke the state values
+  $common->revoke();
+}

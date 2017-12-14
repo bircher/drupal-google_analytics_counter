@@ -301,6 +301,7 @@ class GoogleAnalyticsCounterCommon {
       'google_analytics_counter.access_token',
       'google_analytics_counter.expires_at',
       'google_analytics_counter.refresh_token',
+      'google_analytics_counter.last_cron_run',
     ]);
   }
 
@@ -377,11 +378,8 @@ class GoogleAnalyticsCounterCommon {
     $step = $config->get('general_settings.data_step');
     $chunk = $config->get('general_settings.chunk_to_fetch');
 
-    // Set the start_index .
-    $pointer = $step * $chunk + 1;
-
     // Set the pointer.
-    $pointer += $chunk;
+    $pointer = $step * $chunk + 1;
 
     $parameters = [
       'profile_id' => 'ga:' . $config->get('general_settings.profile_id'),
@@ -579,14 +577,18 @@ class GoogleAnalyticsCounterCommon {
       }
     }
 
+    // The total number of pageViews for this profile from start_date to end_date
+    $total_pageviews = $ga_feed->results->totalsForAllResults['pageviews'];
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_pageviews', $total_pageviews)->save();
+
     // The total number of pagePaths for this profile from start_date to end_date
     $total_paths = $ga_feed->results->totalResults;
     // Store it in configuration.
     \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_paths', $total_paths)->save();
 
-    // The total number of pageViews for this profile from start_date to end_date
-    $total_pageviews = $ga_feed->results->totalsForAllResults['pageviews'];
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_pageviews', $total_pageviews)->save();
+    // The most recent query to Google. Helpful for debugging.
+    $most_recent_query = $ga_feed->results->selfLink;
+    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.most_recent_query', $most_recent_query)->save();
 
     // How many results to ask from Google Analytics in one request.
     // Default of 1000 to fit most systems (for example those with no external cron).

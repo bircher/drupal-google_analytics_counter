@@ -222,7 +222,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#description' => $this->t("The google key details can only be changed when not authenticated."),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
-      '#disabled' => \Drupal::service('google_analytics_counter.common')->isAuthenticated() == TRUE,
+      '#disabled' => \Drupal::service('google_analytics_counter.common')->isAuthenticated() === TRUE,
     ];
     $form['setup']['client_id'] = [
       '#type' => 'textfield',

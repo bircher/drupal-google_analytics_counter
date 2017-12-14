@@ -83,3 +83,6 @@ google_analytics_counter.settings:
         chunk_process_time:
           type: integer
           label: 'Register the chunk nodes to process in $step.'
+        most_recent_query:
+          type: string
+          label: 'Most recent query to Google'
