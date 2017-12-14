@@ -254,7 +254,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       return parent::buildForm($form, $form_state);
     }
     else {
-      $this->common->noProfileMessage();
+      $this->common->notAuthenticatedMessage();
       return parent::buildForm($form, $form_state);
     }
   }

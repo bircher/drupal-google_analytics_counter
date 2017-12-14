@@ -7,7 +7,6 @@
 
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
-use Drupal\msk\MskEnvironment;
 
 /**
  * Implements hook_help().
@@ -24,10 +23,6 @@ function google_analytics_counter_help($route_name, RouteMatchInterface $route_m
  * Implements hook_cron().
  */
 function google_analytics_counter_cron() {
-  // Exit cron if not in Production environment.
-  if (!MskEnvironment::isProduction()) {
-    return FALSE;
-  }
 
   $config = \Drupal::config('google_analytics_counter.settings');
 

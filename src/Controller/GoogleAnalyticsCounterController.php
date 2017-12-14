@@ -70,7 +70,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
     $build = [];
     $build['intro'] = [
-      '#markup' => '<h4>' . $this->t('Relevant Information about Google Analytics and this site') . '</h4>',
+      '#markup' => '<h4>' . $this->t('Information about Google Analytics and this site') . '</h4>',
     ];
 
     // The Google section
@@ -251,7 +251,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
         '#suffix' => '</p>',
       ];
 
-      $this->common->noProfileMessage();
+      $this->common->notAuthenticatedMessage();
       return $build;
     }
   }

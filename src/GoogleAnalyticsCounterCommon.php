@@ -630,7 +630,7 @@ class GoogleAnalyticsCounterCommon {
   /**
    * Prints a warning message when not authenticated.
    */
-  public function noProfileMessage() {
+  public function notAuthenticatedMessage() {
     $t_args = [
       ':href' => Url::fromRoute('google_analytics_counter.admin_auth_form', [], ['absolute' => TRUE])
         ->toString(),

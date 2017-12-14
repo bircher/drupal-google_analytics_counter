@@ -72,7 +72,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     if ($this->common->isAuthenticated() === TRUE) {
       $form['revoke'] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Revoke authentication from Google Analytics'),
+        '#title' => $this->t('Revoke authentication to Google Analytics'),
         '#description' => $this->t('This action will disconnect this site from Google Analytics.'),
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
@@ -87,7 +87,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
       $form['setup'] = [
         '#type' => 'fieldset',
         '#title' => $this->t('Authentication setup'),
-        '#description' => $this->t("When you click 'Set up authentication', you will be redirected to Google. Login with the account that has credentials to the Google Analytics profile you'd like to use."),
+        '#description' => $this->t("This action will redirect you to Google. Login with the account whose profile you'd like to use."),
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
       ];

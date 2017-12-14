@@ -95,7 +95,7 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
    */
   public function getDescription() {
     // The number of hours it will take to reindex the site.
-    return $this->t('Clicking <strong>Yes</strong> means you will have to reauthenticate with Google. This action cannot be undone.');
+    return $this->t('Clicking <strong>Yes</strong> means you will have to reauthenticate with Google in order to get new data. This action cannot be undone.');
   }
 
   /**
@@ -110,7 +110,7 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
     $form_state->setRedirectUrl($this->getCancelUrl());
 
     // Print message.
-    $this->common->noProfileMessage();
+    $this->common->notAuthenticatedMessage();
   }
 
 }
