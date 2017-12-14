@@ -11,11 +11,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 
 /**
- * Class GoogleAnalyticsCounterResetForm.
+ * Class GoogleAnalyticsCounterRevokeForm.
  *
  * @package Drupal\google_analytics_counter\Form
  */
-class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
+class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
 
   /**
    * The state keyvalue collection.
@@ -32,7 +32,7 @@ class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
   protected $common;
 
   /**
-   * Defines a confirmation form to reset module configuration and states.
+   * Defines a confirmation form to revoke Google authentication.
    *
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
@@ -58,14 +58,14 @@ class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'google_analytics_counter_admin_reset';
+    return 'google_analytics_counter_admin_revoke';
   }
 
   /**
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return t('Are you sure that you want to revoke Google Analytics Counter\'s authentication with Google?');
+    return t('Are you sure you want to revoke authentication?');
   }
 
   /**
@@ -102,12 +102,9 @@ class GoogleAnalyticsCounterResetForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    // Todo: Reset configuration values
 
     // Revoke the state values
-    if ($this->common->isAuthenticated()) {
-      $this->common->revoke();
-    }
+    $this->common->revoke();
 
     // Set redirect.
     $form_state->setRedirectUrl($this->getCancelUrl());

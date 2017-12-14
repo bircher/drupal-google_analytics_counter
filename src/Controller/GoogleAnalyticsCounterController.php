@@ -6,7 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterResetForm;
+use Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterRevokeForm;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -84,18 +84,28 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     // Todo: Why use state for last_cron_run, not configuration?
-    $t_args = [
-      ':last_cron_run' => \Drupal::service('date.formatter')->format(\Drupal::state()->get('google_analytics_counter.last_cron_run'), 'medium'),
-      ':start_date' => \Drupal::service('date.formatter')->format(\Drupal::state()->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'medium'),
-      ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
-    ];
-    $t_args = [
-      ':fixed_start_date' => $config->get('general_settings.fixed_start_date'),
-      ':fixed_end_date' => $config->get('general_settings.fixed_end_date'),
-      ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
-    ];
+    if (!empty($config->get('general_settings.fixed_start_date'))) {
+      $t_args = [
+        ':start_date' => \Drupal::service('date.formatter')
+          ->format(strtotime($config->get('general_settings.fixed_start_date')), 'custom', 'M j, Y'),
+        ':end_date' => \Drupal::service('date.formatter')
+          ->format(strtotime($config->get('general_settings.fixed_end_date')), 'custom', 'M j, Y'),
+        ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
+      ];
+    }
+    else {
+      $t_args = [
+        ':start_date' => \Drupal::service('date.formatter')
+          ->format(\Drupal::state()
+            ->get('google_analytics_counter.last_cron_run'), 'custom', 'M j, Y'),
+        ':end_date' => \Drupal::service('date.formatter')
+          ->format(\Drupal::state()
+              ->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'custom', 'M j, Y'),
+        ':total_pageviews' => number_format($config->get('general_settings.total_pageviews')),
+      ];
+    }
     $build['google_info']['total_pageviews'] = [
-      '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :fixed_start_date, and :fixed_end_date: <strong>:total_pageviews</strong>', $t_args),
+      '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_pageviews</strong>', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -213,9 +223,9 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
       // Revoke Google authentication.
       $t_args = [
-        ':href' => Url::fromRoute('google_analytics_counter.admin_dashboard_reset', [], ['absolute' => TRUE])
+        ':href' => Url::fromRoute('google_analytics_counter.admin_auth_revoke', [], ['absolute' => TRUE])
           ->toString(),
-        '@href' => 'Revoke Google authentication',
+        '@href' => 'Revoke authentication',
       ];
       $build['drupal_info']['revoke_authentication'] = [
         '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, e.g. if in trouble with OAuth authentication.', $t_args),
@@ -231,9 +241,9 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       $build = [];
       // Revoke Google authentication.
       $t_args = [
-        ':href' => Url::fromRoute('google_analytics_counter.admin_dashboard_reset', [], ['absolute' => TRUE])
+        ':href' => Url::fromRoute('google_analytics_counter.admin_auth_revoke', [], ['absolute' => TRUE])
           ->toString(),
-        '@href' => 'Revoke Google authentication',
+        '@href' => 'Try revoking authentication',
       ];
       $build['drupal_info']['revoke_authentication'] = [
         '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, e.g. if in trouble with OAuth authentication.', $t_args),

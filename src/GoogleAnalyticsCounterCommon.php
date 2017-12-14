@@ -108,7 +108,7 @@ class GoogleAnalyticsCounterCommon {
    *   True if there is a refresh token set.
    */
   public function isAuthenticated() {
-    return $this->state->get('google_analytics_counter.access_token') != NULL;
+    return $this->state->get('google_analytics_counter.access_token') != NULL ? TRUE : FALSE;
   }
 
   /**
@@ -210,7 +210,7 @@ class GoogleAnalyticsCounterCommon {
    * @return array
    */
   public function getWebPropertiesOptions() {
-    if (!$this->isAuthenticated()) {
+    if ($this->isAuthenticated() !== TRUE) {
       // When not authenticated, there is nothing to get.
       return [];
     }
@@ -636,7 +636,7 @@ class GoogleAnalyticsCounterCommon {
         ->toString(),
       '@href' => 'authenticate here',
     ];
-    drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter can not fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
+    drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
   }
 
 

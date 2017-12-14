@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\msk\MskEnvironment;
 
 /**
@@ -23,6 +24,10 @@ function google_analytics_counter_help($route_name, RouteMatchInterface $route_m
  * Implements hook_cron().
  */
 function google_analytics_counter_cron() {
+  // Exit cron if not in Production environment.
+  if (!MskEnvironment::isProduction()) {
+    return FALSE;
+  }
 
   $config = \Drupal::config('google_analytics_counter.settings');
 
@@ -37,7 +42,7 @@ function google_analytics_counter_cron() {
     $queue = \Drupal::queue('google_analytics_counter_worker');
 
     try {
-      if ($common->isAuthenticated()) {
+      if ($common->isAuthenticated() === TRUE) {
         // Fetch the first batch to see how many there are.
         $results = $common->getChunkedResults();
         $total = $results->results->totalResults;
@@ -82,4 +87,47 @@ function google_analytics_counter_theme() {
       'variables' => ['pageviews' => NULL],
     ],
   ];
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function google_analytics_counter_requirements($phase) {
+  // Only check requirements during the run-time (aka Status Report).
+  if ($phase != 'runtime') {
+    return [];
+  }
+
+  $requirements = [];
+  // Verify that the user has authenticated with Google Analytics.
+  // If not, display a warning on the status page.
+  $config = \Drupal::config('google_analytics_counter.settings');
+  $t_args = [
+    '%profile_id' => $config->get('general_settings.profile_id'),
+    ':href' => Url::fromRoute('google_analytics_counter.admin_auth_form', [], ['absolute' => TRUE])
+      ->toString(),
+    '@href_here' => 'authentication here',
+    '@href' => 'authenticate here',
+  ];
+  /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
+  $common = Drupal::service('google_analytics_counter.common');
+
+  if ($common->isAuthenticated() === TRUE) {
+    $requirements['google_analytics_counter_authentication'] = [
+      'title' => t('Google Analytics Counter'),
+      'description' => t('Google Analytics profile ga:%profile_id has been authenticated. You can revoke <a href=:href>@href_here</a>.', $t_args),
+      'severity' => REQUIREMENT_OK,
+      'value' => t('A Google Analytics profile is authenticated: OK'),
+    ];
+  }
+  else {
+    $requirements['google_analytics_counter_authentication'] = [
+      'title' => t('Google Analytics Counter'),
+      'description' => t('No Google Analytics profile has been authenticated. Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args),
+      'severity' => REQUIREMENT_ERROR,
+      'value' => t('No Google Analytics profile has been authenticated!'),
+    ];
+  }
+
+  return $requirements;
 }

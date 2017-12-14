@@ -69,31 +69,31 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     // Initialize the feed to trigger the fetching of the tokens.
     $this->common->newGaFeed();
 
-    if ($this->common->isAuthenticated()) {
+    if ($this->common->isAuthenticated() === TRUE) {
       $form['revoke'] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Revoke access and logout'),
-        '#description' => $this->t('Revoke your access token to Google Analytics. This action will log you out of your Google Analytics account and stop all reports from displaying on your site.'),
+        '#title' => $this->t('Revoke authentication from Google Analytics'),
+        '#description' => $this->t('This action will disconnect this site from Google Analytics.'),
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
         '#weight' => 5,
       ];
       $form['revoke']['revoke_submit'] = [
         '#type' => 'submit',
-        '#value' => $this->t('Revoke access token'),
+        '#value' => $this->t('Revoke authentication'),
       ];
     }
     else {
       $form['setup'] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Initial setup'),
-        '#description' => $this->t("When you submit this form, you will be redirected to Google for authentication. Login with the account that has credentials to the Google Analytics profile you'd like to use."),
+        '#title' => $this->t('Authentication setup'),
+        '#description' => $this->t("When you click 'Set up authentication', you will be redirected to Google. Login with the account that has credentials to the Google Analytics profile you'd like to use."),
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
       ];
       $form['setup']['setup_submit'] = [
         '#type' => 'submit',
-        '#value' => $this->t('Start setup and authorize account'),
+        '#value' => $this->t('Set up authentication'),
       ];
     }
 
@@ -108,11 +108,11 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
       $op = '';
     }
     switch ($op) {
-      case 'Start setup and authorize account':
+      case 'Set up authentication':
         $this->common->beginAuthentication();
         break;
-      case 'Revoke access token':
-        $form_state->setRedirectUrl(Url::fromRoute('google_analytics_counter.admin_dashboard_reset'));
+      case 'Revoke authentication':
+        $form_state->setRedirectUrl(Url::fromRoute('google_analytics_counter.admin_auth_revoke'));
         break;
     }
   }

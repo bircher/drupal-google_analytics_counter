@@ -222,7 +222,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#description' => $this->t("The google key details can only be changed when not authenticated."),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
-      '#disabled' => \Drupal::service('google_analytics_counter.common')->isAuthenticated(),
+      '#disabled' => \Drupal::service('google_analytics_counter.common')->isAuthenticated() == TRUE,
     ];
     $form['setup']['client_id'] = [
       '#type' => 'textfield',
@@ -250,8 +250,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#weight' => -7,
     ];
 
-    // Stuck with the weak test for now.
-    if ($config->get('general_settings.profile_id') <> '') {
+    if ($this->common->isAuthenticated() === TRUE) {
       return parent::buildForm($form, $form_state);
     }
     else {
