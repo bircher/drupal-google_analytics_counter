@@ -117,24 +117,23 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
-    // GA starting date settings.
+    // GA start date settings.
     $form['start_date_details'] = [
       '#type' => 'details',
       '#title' => $this->t('Query Dates for Google Analytics'),
       '#open' => TRUE,
     ];
 
-    // Todo. Could be more flexible.
     $start_date = [
       '-1 day' => $this->t('-1 day'),
       '-7 days' => $this->t('-7 days'),
       '-30 days' => $this->t('-30 days'),
       '-90 days' => $this->t('-90 days'),
+      '-180 days' => $this->t('-180 days'),
       '-365 days' => $this->t('-365 days'),
       '2005-01-01' => $this->t('Since 2005-01-01'),
     ];
 
-    // Todo: Could be more flexible.
     $form['start_date_details']['start_date'] = [
       '#type' => 'select',
       '#title' => $this->t('Start date for Google Analytics queries'),
@@ -154,7 +153,6 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       ],
     ];
 
-    // GA starting date settings.
     $form['start_date_details']['advanced_date'] = [
       '#type' => 'details',
       '#title' => $this->t('Query with fixed dates'),

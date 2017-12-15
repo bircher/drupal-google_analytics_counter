@@ -564,7 +564,7 @@ class GoogleAnalyticsCounterCommon {
       else {
         foreach ($ga_feed->results->rows as $value) {
           $value['pagePath'] = SafeMarkup::checkPlain(utf8_encode($value['pagePath']));
-          $value['pagePath'] = Unicode::substr($value['pagePath'], 0, 2048);
+          $value['pagePath'] = Unicode::substr($value['pagePath'], 0, 2047);
 
           db_merge('google_analytics_counter')
             ->key(['pagepath_hash' => md5($value['pagePath'])])

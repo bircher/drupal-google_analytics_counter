@@ -121,9 +121,9 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
     $apicalls = $config->get('general_settings.dayquota');
     $build['google_info']['dayquota'] = [
-      '#markup' => $this->t('Number of requests made to Google Analytics in the current 24-hour period: <strong>:apicalls_requests</strong>.', [':apicalls_requests' => number_format($apicalls['requests'])]) . '<br />' . $this->t('Only calls made by this module are counted here. Other modules and apps may also be making requests.'),
+      '#markup' => $this->t('Number of requests made to Google Analytics in the current 24-hour period. : <strong>:apicalls_requests</strong>.', [':apicalls_requests' => number_format($apicalls['requests'])]) . '<br /><em>' . $this->t('Only calls made by this module are counted here. Other modules and apps may be making requests. The quota is reset at midnight PST.'),
       '#prefix' => '<p>',
-      '#suffix' => '</p>',
+      '#suffix' => '</em></p>',
     ];
 
     $remaining_requests = $config->get('general_settings.api_dayquota') - $apicalls['requests'];
@@ -159,7 +159,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
     $build['google_info']['assume_cron_frequency'] = [
       '#markup' => $this->t('Assuming cron runs every hour, the next cron run will take place at <strong>:sec2hms</strong>.',
-      // WTH Drupal. Won't print a custom time when there is a colon in format?
+      // WTH Drupal. Won't print a custom time when there is a colon in the format?
       [':sec2hms' => \Drupal::service('date.formatter')->format($config->get('general_settings.cron_next_execution') + 3600, 'custom', 'g i a')]) . '</p>',
     ];
 
