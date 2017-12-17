@@ -299,9 +299,17 @@ class GoogleAnalyticsCounterCommon {
   public function revoke() {
     $this->state->deleteMultiple([
       'google_analytics_counter.access_token',
+      'google_analytics_counter.chunk_process_time',
+      'google_analytics_counter.cron_next_execution',
+      'google_analytics_counter.data_step',
+      'google_analytics_counter.dayquota_timestamp',
       'google_analytics_counter.expires_at',
-      'google_analytics_counter.refresh_token',
       'google_analytics_counter.last_cron_run',
+      'google_analytics_counter.most_recent_query',
+      'google_analytics_counter.refresh_token',
+      'google_analytics_counter.total_nodes',
+      'google_analytics_counter.total_pageviews',
+      'google_analytics_counter.total_paths',
     ]);
   }
 
@@ -375,7 +383,7 @@ class GoogleAnalyticsCounterCommon {
     $config = $this->config;
 
     // Non-DRY code.
-    $step = $config->get('general_settings.data_step');
+    $step = $this->state->get('google_analytics_counter.data_step');
     $chunk = $config->get('general_settings.chunk_to_fetch');
 
     // Set the pointer.
@@ -389,7 +397,6 @@ class GoogleAnalyticsCounterCommon {
       // If fixed dates are not in use, use 'tomorrow' to offset any timezone
       // shift between the hosting and Google servers.
       'end_date' => !empty($config->get('general_settings.fixed_end_date')) ? strtotime($config->get('general_settings.fixed_end_date')) : strtotime('tomorrow'),
-//      'start_index' => ($config->get('general_settings.chunk_to_fetch') * $config->get('general_settings.data_step')) + 1,
       'start_index' => $pointer,
       'max_results' => $config->get('general_settings.chunk_to_fetch'),
     ];
@@ -415,13 +422,12 @@ class GoogleAnalyticsCounterCommon {
     $feed = $this->getChunkedResults($index);
 
     foreach ($feed->results->rows as $value) {
-      // http://drupal.org/node/310085
       $this->connection->merge('google_analytics_counter')
         ->key(['pagepath_hash' => md5($value['pagePath'])])
         ->fields([
           // Escape the path see https://www.drupal.org/node/2381703
-          'pagepath' => htmlspecialchars($value['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-          'pageviews' => htmlspecialchars($value['pageviews'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+          'pagepath' => substr(htmlspecialchars($value['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 0, 2047),
+          'pageviews' => SafeMarkup::checkPlain($value['pageviews']),
         ])
         ->execute();
     }
@@ -487,31 +493,24 @@ class GoogleAnalyticsCounterCommon {
     $query = $this->connection->select('node', 'n');
     $query->addExpression('COUNT(nid)');
     $total_nodes = $query->execute()->fetchField();
-    \Drupal::configFactory()
-      ->getEditable('google_analytics_counter.settings')
-      ->set('general_settings.total_nodes', $total_nodes)
-      ->save();
-
+    $this->state->set('google_analytics_counter.total_nodes', $total_nodes);
 
     // Stay under the Google Analytics API quota by counting how many
     // API retrievals were made in the last 24 hours.
     // Todo We should take into consideration that the quota is reset at midnight PST (note: time() always returns UTC).
-    $dayquota = $config->get('general_settings.dayquota.timestamp');
+    $dayquota = $this->state->get('google_analytics_counter.dayquota_timestamp');
     if (\Drupal::time()->getRequestTime() - $dayquota >= 86400) {
       // If last API request was more than a day ago, set monitoring time to now.
       // Todo: The next two lines are not DRY.
-      \Drupal::configFactory()
-        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.timestamp', \Drupal::time()->getRequestTime())->save();
-      \Drupal::configFactory()
-        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.requests', 0)->save();
+      $this->state->set('google_analytics_counter.dayquota_timestamp', \Drupal::time()->getRequestTime());
     }
 
     // Are we over the GA API limit?
     // See https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas
     $max_daily_requests = $config->get('general_settings.api_dayquota');
-    if ($config->get('general_settings.dayquota.requests') > $max_daily_requests) {
+    if ($this->state->get('google_analytics_counter.node_step') > $max_daily_requests) {
       $t_args = [
-        ':href' => Url::fromRoute('google_analytics_counter.settings', [], ['absolute' => TRUE])->toString(),
+        ':href' => Url::fromRoute('google_analytics_counter.admin_settings_form', [], ['absolute' => TRUE])->toString(),
         '@href' => 'the Google Analytics Counter settings page',
         '%max_daily_requests' => $max_daily_requests,
         '%day_quota' => ($dayquota + 86400 - \Drupal::time()->getRequestTime()),
@@ -546,10 +545,9 @@ class GoogleAnalyticsCounterCommon {
     if (!$ga_feed->fromCache) {
 
       // This was a live request. Increase the Google Analytics request limit tracker.
-      \Drupal::configFactory()
-        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.timestamp', $config->get('general_settings.dayquota.timestamp'))->save();
-      \Drupal::configFactory()
-        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.requests', ($config->get('general_settings.dayquota.requests') + 1))->save();
+      $this->state->set('google_analytics_counter.dayquota_timestamp', \Drupal::time()->getRequestTime());
+//      \Drupal::configFactory()
+//        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.requests', ($config->get('general_settings.dayquota.requests') + 1))->save();
 
       // If NULL then there is no error.
       if (!empty($ga_feed->error)) {
@@ -561,34 +559,19 @@ class GoogleAnalyticsCounterCommon {
         ];
         $this->logger->error('Problem fetching data from Google Analytics: %new_data_error. Did you authenticate any Google Analytics profile? See <a href=:href>@href</a>.', $t_args);
       }
-      else {
-        foreach ($ga_feed->results->rows as $value) {
-          $value['pagePath'] = SafeMarkup::checkPlain(utf8_encode($value['pagePath']));
-          $value['pagePath'] = Unicode::substr($value['pagePath'], 0, 2047);
-
-          db_merge('google_analytics_counter')
-            ->key(['pagepath_hash' => md5($value['pagePath'])])
-            ->fields([
-              'pagepath' => $value['pagePath'],
-              'pageviews' => SafeMarkup::checkPlain($value['pageviews']),
-            ])
-            ->execute();
-        }
-      }
     }
 
     // The total number of pageViews for this profile from start_date to end_date
     $total_pageviews = $ga_feed->results->totalsForAllResults['pageviews'];
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_pageviews', $total_pageviews)->save();
+    $this->state->set('google_analytics_counter.total_pageviews', $total_pageviews);
 
     // The total number of pagePaths for this profile from start_date to end_date
     $total_paths = $ga_feed->results->totalResults;
-    // Store it in configuration.
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.total_paths', $total_paths)->save();
+    $this->state->set('google_analytics_counter.total_paths', $total_paths);
 
     // The most recent query to Google. Helpful for debugging.
     $most_recent_query = $ga_feed->results->selfLink;
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.most_recent_query', $most_recent_query)->save();
+    $this->state->set('google_analytics_counter.most_recent_query', $most_recent_query);
 
     // How many results to ask from Google Analytics in one request.
     // Default of 1000 to fit most systems (for example those with no external cron).
@@ -596,7 +579,7 @@ class GoogleAnalyticsCounterCommon {
 
     // In case there are more than $chunk path/counts to retrieve from
     // Google Analytics, do one chunk at a time and register that in $step.
-    $step = $config->get('general_settings.data_step');
+    $step = $this->state->get('google_analytics_counter.data_step');
 
     // Which node to look for first. Must be between 1 - infinity.
     $pointer = $step * $chunk + 1;
@@ -621,10 +604,10 @@ class GoogleAnalyticsCounterCommon {
       $new_step = 0;
     }
 
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.data_step', $new_step)->save();
+    $this->state->set('google_analytics_counter.data_step', $new_step);
 
     // Record how long this chunk took to process.
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.chunk_process_time', time() - $chunk_process_begin)->save();
+    $this->state->set('google_analytics_counter.chunk_process_time', time() - $chunk_process_begin);
 
     return $ga_feed;
   }

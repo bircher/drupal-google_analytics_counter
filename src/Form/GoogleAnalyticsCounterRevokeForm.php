@@ -9,7 +9,6 @@ use Drupal\Core\Url;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-
 /**
  * Class GoogleAnalyticsCounterRevokeForm.
  *

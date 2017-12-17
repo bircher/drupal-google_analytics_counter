@@ -5,8 +5,8 @@ namespace Drupal\google_analytics_counter\Controller;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterRevokeForm;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -32,6 +32,13 @@ class GoogleAnalyticsCounterController extends ControllerBase {
   protected $config;
 
   /**
+   * The state keyvalue collection.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
    * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
    *
    * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
@@ -45,12 +52,15 @@ class GoogleAnalyticsCounterController extends ControllerBase {
    *   The factory for configuration objects.
    * @param \Drupal\Core\Database\Connection $database
    *   A database connection.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state keyvalue collection to use.
    * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
    *   Google Analytics Counter Common object.
    */
-  public function __construct(Connection $database, ConfigFactoryInterface $config_factory, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(Connection $database, ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterCommon $common) {
     $this->database = $database;
     $this->config = $config_factory->get('google_analytics_counter.settings');
+    $this->state = $state;
     $this->common = $common;
   }
 
@@ -61,6 +71,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     return new static(
       $container->get('database'),
       $container->get('config.factory'),
+      $container->get('state'),
       $container->get('google_analytics_counter.common')
     );
   }
@@ -84,7 +95,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $t_args = $this->getStartDateEndDate();
-    $t_args += [':total_pageviews' => number_format($config->get('general_settings.total_pageviews'))];
+    $t_args += [':total_pageviews' => number_format($this->state->get('google_analytics_counter.total_pageviews'))];
     $build['google_info']['total_pageviews'] = [
       '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_pageviews</strong>', $t_args),
       '#prefix' => '<p>',
@@ -92,18 +103,18 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $t_args = $this->getStartDateEndDate();
-    $t_args += [':total_paths' => number_format($config->get('general_settings.total_paths'))];
+    $t_args += [':total_paths' => number_format($this->state->get('google_analytics_counter.total_paths'))];
     $build['google_info']['total_paths'] = [
       '#markup' => $this->t('The total number of paths recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_paths</strong>.', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
-    if ($config->get('general_settings.most_recent_query') == '') {
-      $t_args = [':most_recent_query' => 'No queries have been run yet.'];
+    if ($this->state->get('google_analytics_counter.most_recent_query') == '') {
+      $t_args = [':most_recent_query' => 'No queries have been run.'];
     }
     else {
-      $t_args = [':most_recent_query' => $config->get('general_settings.most_recent_query')];
+      $t_args = [':most_recent_query' => $this->state->get('google_analytics_counter.most_recent_query')];
     }
 
     // Google Query
@@ -119,14 +130,13 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#suffix' => '</p>',
     ];
 
-    $apicalls = $config->get('general_settings.dayquota');
     $build['google_info']['dayquota'] = [
-      '#markup' => $this->t('Number of requests made to Google Analytics in the current 24-hour period. : <strong>:apicalls_requests</strong>.', [':apicalls_requests' => number_format($apicalls['requests'])]) . '<br /><em>' . $this->t('Only calls made by this module are counted here. Other modules and apps may be making requests. The quota is reset at midnight PST.'),
+      '#markup' => $this->t('Number of requests made to Google Analytics in the current 24-hour period: <strong>:data_step</strong>.', [':data_step' => number_format($this->state->get('google_analytics_counter.data_step'))]) . '<br /><em>' . $this->t('Only calls made by this module are counted here. Other modules and apps may be making requests. The quota is reset at midnight PST.'),
       '#prefix' => '<p>',
       '#suffix' => '</em></p>',
     ];
 
-    $remaining_requests = $config->get('general_settings.api_dayquota') - $apicalls['requests'];
+    $remaining_requests = $config->get('general_settings.api_dayquota') - $this->state->get('google_analytics_counter.data_step');
     $remaining_requests < 1 ? $remaining_requests = '?' : $remaining_requests = number_format($remaining_requests);
     $build['google_info']['remaining_requests'] = [
       '#markup' => $this->t('Remaining requests available in the current 24-hour period: <strong>:remainingcalls</strong>.', [':remainingcalls' => $remaining_requests]),
@@ -134,22 +144,22 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#suffix' => '</p>',
     ];
 
-    $apicalls['timestamp'] == 0 ? $seconds = 60 * 60 * 24 : $seconds = 60 * 60 * 24 - (\Drupal::time()->getRequestTime() - $apicalls['timestamp']);
+    $this->state->get('google_analytics_counter.dayquota_timestamp') == 0 ? $seconds = 60 * 60 * 24 : $seconds = 60 * 60 * 24 - (\Drupal::time()->getRequestTime() - $this->state->get('google_analytics_counter.dayquota_timestamp'));
     $build['google_info']['period_ends'] = [
       '#markup' => $this->t('The current 24-hour period ends in: <strong>:sec2hms</strong>.', [':sec2hms' => $this->common->sec2hms($seconds)]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
-    $seconds = $config->get('general_settings.chunk_process_time') + $config->get('general_settings.chunk_node_process_time');
+    $seconds = $this->state->get('google_analytics_counter.chunk_process_time') + $this->state->get('google_analytics_counter.chunk_node_process_time');
     if ($seconds < 0) {
       $seconds = 0;
     }
     $t_args = [
       ':chunk_to_fetch' => number_format($config->get('general_settings.chunk_to_fetch')),
       ':sec2hms' => $this->common->sec2hms($seconds),
-      ':chunk_process_time' => $config->get('general_settings.chunk_process_time') . 's',
-      ':chunk_node_process_time' => $config->get('general_settings.chunk_node_process_time') . 's',
+      ':chunk_process_time' => $this->state->get('google_analytics_counter.chunk_process_time') . 's',
+      ':chunk_node_process_time' => $this->state->get('google_analytics_counter.chunk_node_process_time') . 's',
     ];
     $build['google_info']['period_ends'] = [
       '#markup' => $this->t('The most recent retrieval of <strong>:chunk_to_fetch</strong> paths from Google Analytics and node counts from its local mirror took <strong>:sec2hms</strong> (:chunk_process_time + :chunk_node_process_time).', $t_args),
@@ -160,7 +170,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     $build['google_info']['assume_cron_frequency'] = [
       '#markup' => $this->t('Assuming cron runs every hour, the next cron run will take place at <strong>:sec2hms</strong>.',
       // WTH Drupal. Won't print a custom time when there is a colon in the format?
-      [':sec2hms' => \Drupal::service('date.formatter')->format($config->get('general_settings.cron_next_execution') + 3600, 'custom', 'g i a')]) . '</p>',
+      [':sec2hms' => \Drupal::service('date.formatter')->format($this->state->get('google_analytics_counter.cron_next_execution') + 3600, 'custom', 'g i a')]) . '</p>',
     ];
 
     // The Drupal section
@@ -184,28 +194,22 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $build['drupal_info']['total_nodes'] = [
-      '#markup' => $this->t('Total number of nodes on this site: <strong>:totalnodes</strong>.', [':totalnodes' => number_format($config->get('general_settings.total_nodes'))]),
+      '#markup' => $this->t('Total number of nodes on this site: <strong>:totalnodes</strong>.', [':totalnodes' => number_format($this->state->get('google_analytics_counter.total_nodes'))]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
-    if ($config->get('general_settings.storage') == '' && \Drupal::moduleHandler()
-        ->moduleExists('statistics')
-    ) {
-      // See also https://www.drupal.org/node/2275575
-      $table = 'node_counter';
-    }
-    else {
-      $table = 'google_analytics_counter_storage';
-    }
+    // See https://www.drupal.org/node/2275575
+    \Drupal::moduleHandler()->moduleExists('statistics') ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
     $num_of_results = $this->getCount($table);
+
     $build['drupal_info']['total_nodes_with_pageviews'] = [
       '#markup' => $this->t('Number of nodes with known pageview counts on this site: <strong>:num_of_results</strong>.', [':num_of_results' => number_format($num_of_results)]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
-    $temp = $config->get('general_settings.cron_next_execution') - \Drupal::time()->getRequestTime();
+    $temp = $this->state->get('google_analytics_counter.cron_next_execution') - \Drupal::time()->getRequestTime();
     if ($temp < 0) {
       // Run cron immediately.
       $destination = \Drupal::destination()->getAsArray();
@@ -247,7 +251,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
         '@href' => 'Try revoking authentication',
       ];
       $build['drupal_info']['revoke_authentication'] = [
-        '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, e.g. if in trouble with OAuth authentication.', $t_args),
+        '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, if in trouble with OAuth authentication.', $t_args),
         '#prefix' => '<p>',
         '#suffix' => '</p>',
       ];
@@ -287,12 +291,10 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     }
     else {
       $t_args = [
-        ':start_date' => \Drupal::service('date.formatter')
-          ->format(\Drupal::state()
-              ->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'custom', 'M j, Y'),
-        ':end_date' => \Drupal::service('date.formatter')
-          ->format(\Drupal::state()
-            ->get('google_analytics_counter.last_cron_run'), 'custom', 'M j, Y'),
+        ':start_date' => $this->state->get('google_analytics_counter.last_cron_run') ? \Drupal::service('date.formatter')
+          ->format($this->state->get('google_analytics_counter.last_cron_run') - strtotime(ltrim($config->get('general_settings.start_date'), '-'), 0), 'custom', 'M j, Y') : 'N/A',
+          ':end_date' => $this->state->get('google_analytics_counter.last_cron_run') ? \Drupal::service('date.formatter')
+        ->format($this->state->get('google_analytics_counter.last_cron_run'), 'custom', 'M j, Y') : 'N/A',
       ];
       return $t_args;
     }

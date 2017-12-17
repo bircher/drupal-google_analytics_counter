@@ -29,6 +29,9 @@ function google_analytics_counter_cron() {
   // $interval must be a value in seconds.
   $interval = 60 * $config->get('general_settings.cron_interval');
 
+  // Important to set it before the job because if they take long and there is another cron triggered...
+  \Drupal::state()->set('google_analytics_counter.cron_next_execution', \Drupal::time()->getRequestTime());
+
   // We don't want to act every time cron runs, which could be every minute.
   // To avoid this interval, set Minimum time to wait before fetching Google Analytics data to 0.
   if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
@@ -52,8 +55,11 @@ function google_analytics_counter_cron() {
           ->execute();
         foreach ($ids as $nid) {
           $queue->createItem(['type' => 'count', 'nid' => $nid]);
-          // Here it is. The queue worker is not working so we are using another process.
-//          $common->updateStorage($nid);
+
+//          $item = $queue->claimItem(5);
+//          if (!empty($item)) {
+//            $queue->deleteItem($item);
+//          }
         }
       }
       else {
@@ -64,12 +70,6 @@ function google_analytics_counter_cron() {
       \Drupal::logger('google_analytics_counter')->alert('Cron experienced a problem: ' . $e->getMessage());
     }
     \Drupal::state()->set('google_analytics_counter.last_cron_run', \Drupal::time()->getRequestTime());
-
-    // Important to set it before the job because if they take long and there is another cron triggered...
-    \Drupal::configFactory()->getEditable('google_analytics_counter.settings')->set('general_settings.cron_next_execution', \Drupal::time()->getRequestTime())->save();
-
-    // Retrieve path with counts from Google Analytics.
-//    $common->updatePathCounts();
   }
 }
 

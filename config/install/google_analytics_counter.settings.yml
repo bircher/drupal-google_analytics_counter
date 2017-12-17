@@ -1,11 +1,7 @@
 general_settings:
   cron_interval: 30
-  cron_next_execution: 0
   chunk_to_fetch: 1000
   api_dayquota: 10000
-  dayquota:
-    timestamp: 0
-    requests: 0
   cache_length: 86400
   start_date: '-1 day'
   advanced_date_checkbox: false
@@ -13,15 +9,7 @@ general_settings:
   fixed_end_date: ''
   overwrite_statistics: false
   profile_id: ''
+  profile_id_prefill: ''
   client_id: ''
   client_secret: ''
   redirect_uri: ''
-  total_pageviews: 0
-  total_paths: 0
-  total_nodes: 0
-  storage: 'google_analytics_counter_storage'
-  node_data_step: 0
-  data_step: 0
-  chunk_node_process_time: 0
-  chunk_process_time: 0
-  most_recent_query: ''

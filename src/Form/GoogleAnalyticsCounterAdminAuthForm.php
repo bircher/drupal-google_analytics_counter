@@ -2,6 +2,7 @@
 
 namespace Drupal\google_analytics_counter\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -16,6 +17,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @package Drupal\google_analytics_counter\Form
  */
 class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
+
+  /**
+   * The google_analytics_counter.settings config object.
+   *
+   * @var \Drupal\Core\Config\Config
+   */
+  protected $config;
 
   /**
    * The state keyvalue collection.
@@ -34,12 +42,15 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
   /**
    * Constructs a new SiteMaintenanceModeForm.
    *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
    * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
    *   Google Analytics Counter Common object.
    */
-  public function __construct(StateInterface $state, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterCommon $common) {
+    $this->config = $config_factory->get('google_analytics_counter.settings');
     $this->state = $state;
     $this->common = $common;
   }
@@ -49,6 +60,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('config.factory'),
       $container->get('state'),
       $container->get('google_analytics_counter.common')
     );
@@ -104,12 +116,20 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
    * Steps through the OAuth process, revokes tokens and saves profiles.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $config = $this->config;
     if (empty($op = $form_state->getValue('op')->getUntranslatedString())) {
       $op = '';
     }
     switch ($op) {
       case 'Set up authentication':
         $this->common->beginAuthentication();
+        if (!empty($config->get('general_settings.profile_id_prefill'))) {
+          \Drupal::configFactory()
+            ->getEditable('google_analytics_counter.settings')
+            ->set('general_settings.profile_id', $config->get('general_settings.profile_id_prefill'))
+            ->save();
+        }
+
         break;
       case 'Revoke authentication':
         $form_state->setRedirectUrl(Url::fromRoute('google_analytics_counter.admin_auth_revoke'));

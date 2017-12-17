@@ -10,9 +10,6 @@ use Drupal\Core\Url;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Process\Exception\RuntimeException;
-
-
 
 /**
  * Class GoogleAnalyticsCounterAdminSettingsForm.
@@ -34,6 +31,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
    * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
    */
   protected $common;
+
   /**
    * Constructs a new SiteMaintenanceModeForm.
    *
@@ -117,7 +115,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
-    // GA start date settings.
+    // Google Analytics start date settings.
     $form['start_date_details'] = [
       '#type' => 'details',
       '#title' => $this->t('Query Dates for Google Analytics'),
@@ -202,16 +200,35 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#description' => $this->t('Overwriting the total count of cores statistics module is not advised but may be useful in some situations.')
     ];
 
+    $t_args = [
+      ':href' => Url::fromRoute('google_analytics_counter.admin_auth_form', [], ['absolute' => TRUE])
+        ->toString(),
+      '@href' => 'authenticated',
+    ];
+    $form['profile_id_prefill'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Prefill a Google view ID'),
+      '#default_value' => $config->get('general_settings.profile_id_prefill'),
+      '#size' => 20,
+      '#maxlength' => 20,
+      '#description' => $this->t('If you know which Google view you will be using, you may enter it now. Otherwise, you <em>must</em> come back to this form after you have <a href=:href>@href</a> and select a view from the list in <strong>Google Views IDs</strong>.<br />Find your Google Views in your <a href="https://360suite.google.com/orgs?authuser=0" target="_blank">Google Analytics 360 Suite</a>. Currently Google Views IDs are eight digit numbers, e.g. 32178653', $t_args),
+      '#states' => [
+        'visible' => [
+          ':input[name="profile_id"]' => ['empty' => TRUE],
+        ],
+      ],
+    ];
+
     $options = $this->common->getWebPropertiesOptions();
     if (!$options) {
       $options = [$config->get('general_settings.profile_id') => 'Un-authenticated (' . $config->get('general_settings.profile_id') . ')'];
     }
     $form['profile_id'] = [
       '#type' => 'select',
-      '#title' => $this->t('Reports profile'),
+      '#title' => $this->t('Google Views IDs'),
       '#options' => $options,
       '#default_value' => $config->get('general_settings.profile_id'),
-      '#description' => $this->t('Choose your Google Analytics profile. The options depend on the authenticated account.'),
+      '#description' => $this->t('Choose your Google Analytics view. The options depend on the authenticated account.'),
     ];
 
     $form['setup'] = [
@@ -220,7 +237,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#description' => $this->t("The google key details can only be changed when not authenticated."),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
-      '#disabled' => \Drupal::service('google_analytics_counter.common')->isAuthenticated() === TRUE,
+      '#disabled' => $this->common->isAuthenticated() === TRUE,
     ];
     $form['setup']['client_id'] = [
       '#type' => 'textfield',
@@ -273,6 +290,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       ->set('general_settings.fixed_end_date', $form_state->getValue('advanced_date_checkbox') == 1 ? $form_state->getValue('fixed_end_date') : '')
       ->set('general_settings.overwrite_statistics', $form_state->getValue('overwrite_statistics'))
       ->set('general_settings.profile_id', $form_state->getValue('profile_id'))
+      ->set('general_settings.profile_id_prefill', $form_state->getValue('profile_id_prefill'))
       ->set('general_settings.client_id', $form_state->getValue('client_id'))
       ->set('general_settings.client_secret', $form_state->getValue('client_secret'))
       ->set('general_settings.redirect_uri', $form_state->getValue('redirect_uri'))

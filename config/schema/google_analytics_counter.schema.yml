@@ -11,24 +11,12 @@ google_analytics_counter.settings:
         cron_interval:
           type: integer
           label: 'Minimum time between Google Analytics data fetching'
-        cron_next_execution:
-          type: integer
-          label: 'The amount of time until the next cron'
         chunk_to_fetch:
           type: integer
           label: 'Number of items to fetch from Google Analytics in one request'
         api_dayquota:
           type: integer
           label: 'Number of items to fetch from Google Analytics in one request'
-        dayquota:
-          type: sequence
-          label: 'Day quota'
-          sequence:
-            - type: integer
-              label: 'Timestamp for Dayquota'
-              requests:
-            - type: integer
-              label: 'The number of requests made to Google Analytics in a 24 hour period'
         cache_length:
           type: integer
           label: 'The minimum time in hours to elapse between getting fresh data for the same query from Google Analytics'
@@ -49,7 +37,10 @@ google_analytics_counter.settings:
           label: 'Override the counter of the core statistics module'
         profile_id:
           type: string
-          label: 'The Google Analytics profile to use'
+          label: 'The Google Analytics view to use'
+        profile_id_prefill:
+          type: string
+          label: 'Prefill the Google Analytics view id to use'
         client_id:
           type: string
           label: 'Client ID created for the app'
@@ -59,30 +50,3 @@ google_analytics_counter.settings:
         redirect_uri:
           type: string
           label: 'Used to override the host for the callback uri'
-        total_pageviews:
-          type: string
-          label: 'The total number of pageviews for this profile'
-        total_paths:
-          type: integer
-          label: 'Number of paths for this profile'
-        total_nodes:
-          type: string
-          label: 'Total number of nodes on this site'
-        storage:
-          type: string
-          label: 'The database table used to store pageviews'
-        node_data_step:
-          type: integer
-          label: 'Register the chunk nodes to process in $step'
-        data_step:
-          type: integer
-          label: 'Increase step to look further during the next cron run'
-        chunk_node_process_time:
-          type: integer
-          label: 'Register the time a chunk of nodes takes to process.'
-        chunk_process_time:
-          type: integer
-          label: 'Register the chunk nodes to process in $step.'
-        most_recent_query:
-          type: string
-          label: 'Most recent query to Google'
