@@ -624,5 +624,25 @@ class GoogleAnalyticsCounterCommon {
     drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
   }
 
+  /**
+   * Revoke Google Authentication Message.
+   *
+   * @param $build
+   * @return mixed
+   */
+  public function revokeAuthenticationMessage($build) {
+    $t_args = [
+      ':href' => Url::fromRoute('google_analytics_counter.admin_auth_revoke', [], ['absolute' => TRUE])
+        ->toString(),
+      '@href' => 'Revoke Google authentication',
+    ];
+    $build['drupal_info']['revoke_authentication'] = [
+      '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, if in trouble with OAuth authentication.', $t_args),
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+    ];
+    return $build;
+  }
+
 
 }

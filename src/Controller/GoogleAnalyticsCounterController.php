@@ -227,16 +227,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       ];
 
       // Revoke Google authentication.
-      $t_args = [
-        ':href' => Url::fromRoute('google_analytics_counter.admin_auth_revoke', [], ['absolute' => TRUE])
-          ->toString(),
-        '@href' => 'Revoke authentication',
-      ];
-      $build['drupal_info']['revoke_authentication'] = [
-        '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, e.g. if in trouble with OAuth authentication.', $t_args),
-        '#prefix' => '<p>',
-        '#suffix' => '</p>',
-      ];
+      $build = $this->common->revokeAuthenticationMessage($build);
     }
 
     if ($this->common->isAuthenticated() === TRUE) {
@@ -245,17 +236,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     else {
       $build = [];
       // Revoke Google authentication.
-      $t_args = [
-        ':href' => Url::fromRoute('google_analytics_counter.admin_auth_revoke', [], ['absolute' => TRUE])
-          ->toString(),
-        '@href' => 'Try revoking authentication',
-      ];
-      $build['drupal_info']['revoke_authentication'] = [
-        '#markup' => $this->t('<a href=:href>@href</a>. Useful in some cases, if in trouble with OAuth authentication.', $t_args),
-        '#prefix' => '<p>',
-        '#suffix' => '</p>',
-      ];
-
+      $build = $this->common->revokeAuthenticationMessage($build);
       $this->common->notAuthenticatedMessage();
       return $build;
     }
