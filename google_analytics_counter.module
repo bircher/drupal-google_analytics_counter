@@ -7,6 +7,7 @@
 
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_help().
@@ -33,7 +34,7 @@ function google_analytics_counter_cron() {
   \Drupal::state()->set('google_analytics_counter.cron_next_execution', \Drupal::time()->getRequestTime());
 
   // We don't want to act every time cron runs, which could be every minute.
-  // To avoid this interval, set Minimum time to wait before fetching Google Analytics data to 0.
+  // To avoid this interval, set cron_interval to 0.
   if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
     $common = Drupal::service('google_analytics_counter.common');
@@ -44,22 +45,17 @@ function google_analytics_counter_cron() {
         // Fetch the first batch to see how many there are.
         $results = $common->getChunkedResults();
         $total = $results->results->totalResults;
-        for($index = 0; $index < $total/$config->get('general_settings.chunk_to_fetch'); $index++) {
+        for($index = 0; $index < $total / $config->get('general_settings.chunk_to_fetch'); $index++) {
           // Add a queue item to fetch for all chunks.
           $queue->createItem(['type' => 'fetch', 'index' => $index]);
         }
 
         // Queue all the published nodes to be counted
         $ids = \Drupal::entityQuery('node')
-          ->condition('status', \Drupal\node\NodeInterface::PUBLISHED)
+          ->condition('status', NodeInterface::PUBLISHED)
           ->execute();
         foreach ($ids as $nid) {
           $queue->createItem(['type' => 'count', 'nid' => $nid]);
-
-//          $item = $queue->claimItem(5);
-//          if (!empty($item)) {
-//            $queue->deleteItem($item);
-//          }
         }
       }
       else {

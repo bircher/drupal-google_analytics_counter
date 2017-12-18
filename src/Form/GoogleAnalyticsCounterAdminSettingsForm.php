@@ -265,8 +265,9 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#weight' => -7,
     ];
 
-    if (!$this->common->isAuthenticated() === TRUE) {
-      $this->common->notAuthenticatedMessage();
+    // It's a weak test but better than none.
+    if (empty($config->get('general_settings.profile_id'))) {
+        $this->common->notAuthenticatedMessage();
     }
 
     return parent::buildForm($form, $form_state);

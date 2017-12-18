@@ -544,10 +544,8 @@ class GoogleAnalyticsCounterCommon {
     // data comes from cache (would be writing the same again).
     if (!$ga_feed->fromCache) {
 
-      // This was a live request. Increase the Google Analytics request limit tracker.
+      // This was a live request. Timestamp it.
       $this->state->set('google_analytics_counter.dayquota_timestamp', \Drupal::time()->getRequestTime());
-//      \Drupal::configFactory()
-//        ->getEditable('google_analytics_counter.settings')->set('general_settings.dayquota.requests', ($config->get('general_settings.dayquota.requests') + 1))->save();
 
       // If NULL then there is no error.
       if (!empty($ga_feed->error)) {

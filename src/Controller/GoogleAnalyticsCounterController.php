@@ -111,7 +111,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     if ($this->state->get('google_analytics_counter.most_recent_query') == '') {
-      $t_args = [':most_recent_query' => 'No queries have been run.'];
+      $t_args = [':most_recent_query' => 'No query has been run.'];
     }
     else {
       $t_args = [':most_recent_query' => $this->state->get('google_analytics_counter.most_recent_query')];
