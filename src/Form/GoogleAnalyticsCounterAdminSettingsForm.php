@@ -265,13 +265,11 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#weight' => -7,
     ];
 
-    if ($this->common->isAuthenticated() === TRUE) {
-      return parent::buildForm($form, $form_state);
-    }
-    else {
+    if (!$this->common->isAuthenticated() === TRUE) {
       $this->common->notAuthenticatedMessage();
-      return parent::buildForm($form, $form_state);
     }
+
+    return parent::buildForm($form, $form_state);
   }
 
   /**
