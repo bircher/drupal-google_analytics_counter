@@ -305,6 +305,7 @@ class GoogleAnalyticsCounterCommon {
       'google_analytics_counter.cron_next_execution',
       'google_analytics_counter.data_step',
       'google_analytics_counter.dayquota_timestamp',
+      'google_analytics_counter.dayquota_request',
       'google_analytics_counter.expires_at',
       'google_analytics_counter.last_cron_run',
       'google_analytics_counter.most_recent_query',
@@ -510,7 +511,7 @@ class GoogleAnalyticsCounterCommon {
     // Are we over the GA API limit?
     // See https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas
     $max_daily_requests = $config->get('general_settings.api_dayquota');
-    if ($this->state->get('google_analytics_counter.node_step') > $max_daily_requests) {
+    if ($this->state->get('google_analytics_counter.dayquota_request') > $max_daily_requests) {
       $t_args = [
         ':href' => Url::fromRoute('google_analytics_counter.admin_settings_form', [], ['absolute' => TRUE])->toString(),
         '@href' => 'the Google Analytics Counter settings page',
@@ -548,6 +549,8 @@ class GoogleAnalyticsCounterCommon {
 
       // This was a live request. Timestamp it.
       $this->state->set('google_analytics_counter.dayquota_timestamp', \Drupal::time()->getRequestTime());
+      // Add the request to the dayquota_request.
+      $this->state->set('google_analytics_counter.dayquota_request', $this->state->get('google_analytics_counter.dayquota_request') + 1);
 
       // If NULL then there is no error.
       if (!empty($ga_feed->error)) {

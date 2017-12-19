@@ -211,7 +211,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('general_settings.profile_id_prefill'),
       '#size' => 20,
       '#maxlength' => 20,
-      '#description' => $this->t('If you know which Google view you will be using, you may enter it now. Otherwise, you <em>must</em> come back to this form after you have <a href=:href>@href</a> and select a view from the list in <strong>Google Views IDs</strong>.<br />Find your Google Views in your <a href="https://360suite.google.com/orgs?authuser=0" target="_blank">Google Analytics 360 Suite</a>. Currently Google Views IDs are eight digit numbers, e.g. 32178653', $t_args),
+      '#description' => $this->t('If you know which Google view you will be using, you may enter its ID here. Otherwise, you <u>must</u> come back to this form after you have <a href=:href>@href</a> and select a view from the list in <strong>Google Views IDs</strong>.<br />Find your Google Views in your <a href="https://360suite.google.com/orgs?authuser=0" target="_blank">Google Analytics 360 Suite</a>. Currently Google Views IDs are eight digit numbers, e.g. 32178653', $t_args),
       '#states' => [
         'visible' => [
           ':input[name="profile_id"]' => ['empty' => TRUE],

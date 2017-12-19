@@ -97,7 +97,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     $t_args = $this->getStartDateEndDate();
     $t_args += [':total_pageviews' => number_format($this->state->get('google_analytics_counter.total_pageviews'))];
     $build['google_info']['total_pageviews'] = [
-      '#markup' => $this->t('The total number of pageviews recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_pageviews</strong>', $t_args),
+      '#markup' => $this->t('<strong>:total_pageviews</strong> pageviews were recorded by Google Analytics for this profile between :start_date - :end_date.', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -105,7 +105,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     $t_args = $this->getStartDateEndDate();
     $t_args += [':total_paths' => number_format($this->state->get('google_analytics_counter.total_paths'))];
     $build['google_info']['total_paths'] = [
-      '#markup' => $this->t('The total number of paths recorded by Google Analytics for this profile between :start_date - :end_date: <strong>:total_paths</strong>.', $t_args),
+      '#markup' => $this->t('<strong>:total_paths</strong> paths were recorded by Google Analytics for this profile between :start_date - :end_date.', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -131,20 +131,21 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $build['google_info']['dayquota'] = [
-      '#markup' => $this->t('Number of requests made to Google Analytics in the current 24-hour period: <strong>:data_step</strong>.', [':data_step' => number_format($this->state->get('google_analytics_counter.data_step'))]) . '<br /><em>' . $this->t('Only calls made by this module are counted here. Other modules and apps may be making requests. The quota is reset at midnight PST.'),
+      '#markup' => $this->t('<strong>:dayquota_request</strong> requests were made to Google Analytics in the current 24-hour period.', [':dayquota_request' => number_format($this->state->get('google_analytics_counter.dayquota_request'))]) . '<br /><em>' . $this->t('Only calls made by this module are counted here. Other modules and apps may be making requests. The quota is reset at midnight PST.'),
       '#prefix' => '<p>',
       '#suffix' => '</em></p>',
     ];
 
-    $remaining_requests = $config->get('general_settings.api_dayquota') - $this->state->get('google_analytics_counter.data_step');
+    $remaining_requests = $config->get('general_settings.api_dayquota') - $this->state->get('google_analytics_counter.dayquota_request');
     $remaining_requests < 1 ? $remaining_requests = '?' : $remaining_requests = number_format($remaining_requests);
     $build['google_info']['remaining_requests'] = [
-      '#markup' => $this->t('Remaining requests available in the current 24-hour period: <strong>:remainingcalls</strong>.', [':remainingcalls' => $remaining_requests]),
+      '#markup' => $this->t('<strong>:remainingcalls</strong> requests to Google Analytics remain available in the current 24-hour period.', [':remainingcalls' => $remaining_requests]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
-    $this->state->get('google_analytics_counter.dayquota_timestamp') == 0 ? $seconds = 60 * 60 * 24 : $seconds = 60 * 60 * 24 - (\Drupal::time()->getRequestTime() - $this->state->get('google_analytics_counter.dayquota_timestamp'));
+    $seconds = $this->state->get('google_analytics_counter.dayquota_timestamp') == 0 ? $seconds = 60 * 60 * 24 : $seconds = 60 * 60 * 24 - (\Drupal::time()
+          ->getRequestTime() - $this->state->get('google_analytics_counter.dayquota_timestamp'));
     $build['google_info']['period_ends'] = [
       '#markup' => $this->t('The current 24-hour period ends in: <strong>:sec2hms</strong>.', [':sec2hms' => $this->common->sec2hms($seconds)]),
       '#prefix' => '<p>',
@@ -156,13 +157,12 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       $seconds = 0;
     }
     $t_args = [
-      ':chunk_to_fetch' => number_format($config->get('general_settings.chunk_to_fetch')),
       ':sec2hms' => $this->common->sec2hms($seconds),
       ':chunk_process_time' => $this->state->get('google_analytics_counter.chunk_process_time') . 's',
       ':chunk_node_process_time' => $this->state->get('google_analytics_counter.chunk_node_process_time') . 's',
     ];
-    $build['google_info']['period_ends'] = [
-      '#markup' => $this->t('The most recent retrieval of <strong>:chunk_to_fetch</strong> paths from Google Analytics and node counts from its local mirror took <strong>:sec2hms</strong> (:chunk_process_time + :chunk_node_process_time).', $t_args),
+    $build['google_info']['most_recent_retrieval'] = [
+      '#markup' => $this->t('The most recent retrieval from Google Analytics took <strong>:sec2hms</strong> (:chunk_process_time + :chunk_node_process_time).', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -186,25 +186,26 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#suffix' => '</p>',
     ];
 
-    $num_of_results = $this->getCount('google_analytics_counter');
+    $num_of_results = $this->getCount('google_analytics_counter') > 0 ? number_format($this->getCount('google_analytics_counter')) : 'Cron has not run';
     $build['drupal_info']['number_paths_stored'] = [
-      '#markup' => $this->t('Number of paths currently stored in the local database table: <strong>:num_of_results</strong>.', [':num_of_results' => number_format($num_of_results)]),
+      '#markup' => $this->t('Number of paths currently stored in the local database table: <strong>:num_of_results</strong>.', [':num_of_results' => $num_of_results]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
+    $total_nodes = !empty($this->state->get('google_analytics_counter.total_nodes')) ? number_format($this->state->get('google_analytics_counter.total_nodes')) : 'Cron has not run';
     $build['drupal_info']['total_nodes'] = [
-      '#markup' => $this->t('Total number of <em>published</em> nodes: <strong>:totalnodes</strong>.', [':totalnodes' => number_format($this->state->get('google_analytics_counter.total_nodes'))]),
+      '#markup' => $this->t('Total number of <em>published</em> nodes: <strong>:totalnodes</strong>.', [':totalnodes' => $total_nodes]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
     // See https://www.drupal.org/node/2275575
     \Drupal::moduleHandler()->moduleExists('statistics') ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
-    $num_of_results = $this->getCount($table) > 0 ? number_format($this->getCount($table)) : 'Cron has not run.';
+    $num_of_results = $this->getCount($table) > 0 ? number_format($this->getCount($table)) : 'Cron has not run';
 
     $build['drupal_info']['total_nodes_with_pageviews'] = [
-      '#markup' => $this->t('Number of nodes with pageview counts whose pageview counts are greater than zero: <strong>:num_of_results</strong>.', [':num_of_results' => $num_of_results]),
+      '#markup' => $this->t('Number of nodes with pageview counts greater than zero: <strong>:num_of_results</strong>.', [':num_of_results' => $num_of_results]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
