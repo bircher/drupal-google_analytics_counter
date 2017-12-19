@@ -11,4 +11,5 @@ namespace Drupal\google_analytics_counter\Plugin\QueueWorker;
  *   cron = {"time" = 120}
  * )
  */
-class GoogleAnalyticsCounterQueue extends GoogleAnalyticsCounterQueueBase {}
+class GoogleAnalyticsCounterQueue extends GoogleAnalyticsCounterQueueBase {
+}

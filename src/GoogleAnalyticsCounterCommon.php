@@ -11,8 +11,10 @@ use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
 use Exception;
 use Psr\Log\LoggerInterface;
+
 
 /**
  * Class GoogleAnalyticsCounterCommon.
@@ -489,10 +491,10 @@ class GoogleAnalyticsCounterCommon {
     // Record how long this chunk took to process.
     $chunk_process_begin = time();
 
-    // The total number of nodes.
-    $query = $this->connection->select('node', 'n');
-    $query->addExpression('COUNT(nid)');
-    $total_nodes = $query->execute()->fetchField();
+    // The total number of published nodes.
+    $query = \Drupal::entityQuery('node');
+    $query->condition('status', NodeInterface::PUBLISHED);
+    $total_nodes = $query->count()->execute();
     $this->state->set('google_analytics_counter.total_nodes', $total_nodes);
 
     // Stay under the Google Analytics API quota by counting how many

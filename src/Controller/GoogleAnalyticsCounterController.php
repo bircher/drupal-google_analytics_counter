@@ -188,23 +188,23 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
     $num_of_results = $this->getCount('google_analytics_counter');
     $build['drupal_info']['number_paths_stored'] = [
-      '#markup' => $this->t('Number of paths currently stored in local database table: <strong>:num_of_results</strong>.', [':num_of_results' => number_format($num_of_results)]),
+      '#markup' => $this->t('Number of paths currently stored in the local database table: <strong>:num_of_results</strong>.', [':num_of_results' => number_format($num_of_results)]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
     $build['drupal_info']['total_nodes'] = [
-      '#markup' => $this->t('Total number of nodes on this site: <strong>:totalnodes</strong>.', [':totalnodes' => number_format($this->state->get('google_analytics_counter.total_nodes'))]),
+      '#markup' => $this->t('Total number of <em>published</em> nodes: <strong>:totalnodes</strong>.', [':totalnodes' => number_format($this->state->get('google_analytics_counter.total_nodes'))]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
     // See https://www.drupal.org/node/2275575
     \Drupal::moduleHandler()->moduleExists('statistics') ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
-    $num_of_results = $this->getCount($table);
+    $num_of_results = $this->getCount($table) > 0 ? number_format($this->getCount($table)) : 'Cron has not run.';
 
     $build['drupal_info']['total_nodes_with_pageviews'] = [
-      '#markup' => $this->t('Number of nodes with known pageview counts on this site: <strong>:num_of_results</strong>.', [':num_of_results' => number_format($num_of_results)]),
+      '#markup' => $this->t('Number of nodes with pageview counts whose pageview counts are greater than zero: <strong>:num_of_results</strong>.', [':num_of_results' => $num_of_results]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -250,6 +250,10 @@ class GoogleAnalyticsCounterController extends ControllerBase {
    */
   private function getCount($table) {
     $query = $this->database->select($table, 't');
+    if ($table == 'google_analytics_counter_storage') {
+      $query->addField('t', 'field_pageview_total');
+      $query->condition('pageview_total', 0, '!=');
+    }
     return $query->countQuery()->execute()->fetchField();
   }
 

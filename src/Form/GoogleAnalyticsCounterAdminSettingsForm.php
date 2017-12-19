@@ -124,11 +124,11 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $start_date = [
       '-1 day' => $this->t('-1 day'),
-      '-7 days' => $this->t('-7 days'),
-      '-30 days' => $this->t('-30 days'),
-      '-90 days' => $this->t('-90 days'),
-      '-180 days' => $this->t('-180 days'),
-      '-365 days' => $this->t('-365 days'),
+      '-1 week' => $this->t('-1 week'),
+      '-1 month' => $this->t('-1 month'),
+      '-3 months' => $this->t('-3 months'),
+      '-6 months' => $this->t('-6 months'),
+      '-1 year' => $this->t('-1 year'),
       '2005-01-01' => $this->t('Since 2005-01-01'),
     ];
 
