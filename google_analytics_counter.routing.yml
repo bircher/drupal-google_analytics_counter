@@ -4,7 +4,7 @@ google_analytics_counter.admin_settings_form:
     _form: '\Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterAdminSettingsForm'
     _title: 'Google Analytics Counter: Settings'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'administer google analytics counter'
 
 google_analytics_counter.admin_dashboard_form:
   path: '/admin/config/system/google-analytics-counter/dashboard'
@@ -12,7 +12,7 @@ google_analytics_counter.admin_dashboard_form:
     _controller: '\Drupal\google_analytics_counter\Controller\GoogleAnalyticsCounterController::dashboard'
     _title: 'Google Analytics Counter: Dashboard'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'administer google analytics counter'
 
 google_analytics_counter.admin_auth_form:
   path: '/admin/config/system/google-analytics-counter/authentication'
@@ -20,7 +20,7 @@ google_analytics_counter.admin_auth_form:
     _form: '\Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterAdminAuthForm'
     _title: 'Google Analytics Counter: Authentication'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'administer google analytics counter'
 
 google_analytics_counter.admin_auth_revoke:
   path: '/admin/config/system/google-analytics-counter/dashboard/revoke'
@@ -28,5 +28,5 @@ google_analytics_counter.admin_auth_revoke:
     _form: '\Drupal\google_analytics_counter\Form\GoogleAnalyticsCounterRevokeForm'
     _title: 'Google Analytics Counter: Revoke'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'administer google analytics counter'
 

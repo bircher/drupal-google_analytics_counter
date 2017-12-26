@@ -3,6 +3,7 @@ general_settings:
   chunk_to_fetch: 1000
   api_dayquota: 10000
   cache_length: 86400
+  queue_time: 120
   start_date: '-1 day'
   advanced_date_checkbox: false
   fixed_start_date: ''

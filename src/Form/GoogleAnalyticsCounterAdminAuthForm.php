@@ -10,7 +10,6 @@ use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
 use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-
 /**
  * Class GoogleAnalyticsCounterAdminAuthForm.
  *

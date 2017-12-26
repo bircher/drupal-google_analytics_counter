@@ -3,7 +3,6 @@
 namespace Drupal\google_analytics_counter;
 
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -14,7 +13,6 @@ use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Exception;
 use Psr\Log\LoggerInterface;
-
 
 /**
  * Class GoogleAnalyticsCounterCommon.
@@ -40,7 +38,7 @@ class GoogleAnalyticsCounterCommon {
   protected $state;
 
   /**
-   * The database connection to save the counters.
+   * The database connection service.
    *
    * @var \Drupal\Core\Database\Connection
    */
@@ -73,6 +71,13 @@ class GoogleAnalyticsCounterCommon {
   protected $logger;
 
   /**
+   * The time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
    * Constructs an Importer object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -80,7 +85,7 @@ class GoogleAnalyticsCounterCommon {
    * @param \Drupal\Core\State\StateInterface $state
    *   The state of the drupal site.
    * @param \Drupal\Core\Database\Connection $connection
-   *   A database connection for reading and writing the path counts.
+   *   A database connection.
    * @param \Drupal\Core\Path\AliasManagerInterface $alias_manager
    *   The path alias manager to find aliased resources.
    * @param \Psr\Log\LoggerInterface $logger
@@ -93,6 +98,7 @@ class GoogleAnalyticsCounterCommon {
     $this->aliasManager = $alias_manager;
     $this->languageManager = $language;
     $this->logger = $logger;
+    $this->time = \Drupal::service('datetime.time');
 
     $this->prefixes = [];
     // The 'url' will return NULL when it is not a multilingual site.
@@ -249,8 +255,8 @@ class GoogleAnalyticsCounterCommon {
    *   The UNIX timestamp to expire the query at.
    */
   public static function cacheTime() {
-    return time() + \Drupal::config('google_analytics_counter.settings')
-      ->get('general_settings.cache_length');
+    $config = \Drupal::config('google_analytics_counter.settings');
+    return time() + $config->get('general_settings.cache_length');
   }
 
   /**
@@ -296,27 +302,6 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Programatically revoke token.
-   */
-  public function revoke() {
-    $this->state->deleteMultiple([
-      'google_analytics_counter.access_token',
-      'google_analytics_counter.chunk_process_time',
-      'google_analytics_counter.cron_next_execution',
-      'google_analytics_counter.data_step',
-      'google_analytics_counter.dayquota_timestamp',
-      'google_analytics_counter.dayquota_request',
-      'google_analytics_counter.expires_at',
-      'google_analytics_counter.last_cron_run',
-      'google_analytics_counter.most_recent_query',
-      'google_analytics_counter.refresh_token',
-      'google_analytics_counter.total_nodes',
-      'google_analytics_counter.total_pageviews',
-      'google_analytics_counter.total_paths',
-    ]);
-  }
-
-  /**
    * Save the pageview count for a given node.
    *
    * @param integer $nid
@@ -345,13 +330,13 @@ class GoogleAnalyticsCounterCommon {
     // Look up the count via the hash of the path.
     $aliases = array_unique($aliases);
     $hashes = array_map('md5', $aliases);
-    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
+    $path_counts = $this->connection->select('google_analytics_counter', 'gac')
       ->fields('gac', ['pageviews'])
       ->condition('pagepath_hash', $hashes, 'IN')
       ->execute();
     $sum_of_pageviews = 0;
-    foreach ($pathcounts as $pathcount) {
-      $sum_of_pageviews += $pathcount->pageviews;
+    foreach ($path_counts as $path_count) {
+      $sum_of_pageviews += $path_count->pageviews;
     }
 
     // Always save the data in our table.
@@ -360,13 +345,13 @@ class GoogleAnalyticsCounterCommon {
       ->fields(['pageview_total' => $sum_of_pageviews])
       ->execute();
 
-    // If we selected to override the storage of the statistics module.
+    // If we selected to override the storage with the statistics module.
     if ($this->config->get('general_settings.overwrite_statistics')) {
       $this->connection->merge('node_counter')
         ->key(['nid' => $nid])
         ->fields([
           'totalcount' => $sum_of_pageviews,
-          'timestamp' => \Drupal::time()->getRequestTime(),
+          'timestamp' => $this->time->getRequestTime(),
         ])
         ->execute();
     }
@@ -397,8 +382,7 @@ class GoogleAnalyticsCounterCommon {
       'metrics' => ['ga:pageviews'],
       'dimensions' => ['ga:pagePath'],
       'start_date' => !empty($config->get('general_settings.fixed_start_date')) ? strtotime($config->get('general_settings.fixed_start_date')) : strtotime($config->get('general_settings.start_date')),
-      // If fixed dates are not in use, use 'tomorrow' to offset any timezone
-      // shift between the hosting and Google servers.
+      // If fixed dates are not in use, use 'tomorrow' to offset any timezone shift between the hosting and Google servers.
       'end_date' => !empty($config->get('general_settings.fixed_end_date')) ? strtotime($config->get('general_settings.fixed_end_date')) : strtotime('tomorrow'),
       'start_index' => $pointer,
       'max_results' => $config->get('general_settings.chunk_to_fetch'),
@@ -425,11 +409,14 @@ class GoogleAnalyticsCounterCommon {
     $feed = $this->getChunkedResults($index);
 
     foreach ($feed->results->rows as $value) {
+
+      // Google Analytics pagepaths that are extremely long are meaningless.
+      $page_path = substr(htmlspecialchars($value['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 0, 2047);
       $this->connection->merge('google_analytics_counter')
-        ->key(['pagepath_hash' => md5($value['pagePath'])])
+        ->key(['pagepath_hash' => md5($page_path)])
         ->fields([
           // Escape the path see https://www.drupal.org/node/2381703
-          'pagepath' => substr(htmlspecialchars($value['pagePath'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 0, 2047),
+          'pagepath' => $page_path,
           'pageviews' => SafeMarkup::checkPlain($value['pageviews']),
         ])
         ->execute();
@@ -502,10 +489,10 @@ class GoogleAnalyticsCounterCommon {
     // API retrievals were made in the last 24 hours.
     // Todo We should take into consideration that the quota is reset at midnight PST (note: time() always returns UTC).
     $dayquota = $this->state->get('google_analytics_counter.dayquota_timestamp');
-    if (\Drupal::time()->getRequestTime() - $dayquota >= 86400) {
+    if ($this->time->getRequestTime() - $dayquota >= 86400) {
       // If last API request was more than a day ago, set monitoring time to now.
-      // Todo: The next two lines are not DRY.
-      $this->state->set('google_analytics_counter.dayquota_timestamp', \Drupal::time()->getRequestTime());
+      $this->state->set('google_analytics_counter.dayquota_timestamp', $this->time->getRequestTime());
+      $this->state->set('google_analytics_counter.dayquota_request', 0);
     }
 
     // Are we over the GA API limit?
@@ -516,7 +503,7 @@ class GoogleAnalyticsCounterCommon {
         ':href' => Url::fromRoute('google_analytics_counter.admin_settings_form', [], ['absolute' => TRUE])->toString(),
         '@href' => 'the Google Analytics Counter settings page',
         '%max_daily_requests' => $max_daily_requests,
-        '%day_quota' => ($dayquota + 86400 - \Drupal::time()->getRequestTime()),
+        '%day_quota' => ($dayquota + 86400 - $this->time->getRequestTime()),
       ];
       $this->logger->error('Google Analytics API quota of %max_daily_requests requests has been reached. The system will not fetch data from Google Analytics for the next %day_quota seconds. See <a href=:href>@href</a> for more info.', $t_args);
     }
@@ -548,7 +535,7 @@ class GoogleAnalyticsCounterCommon {
     if (!$ga_feed->fromCache) {
 
       // This was a live request. Timestamp it.
-      $this->state->set('google_analytics_counter.dayquota_timestamp', \Drupal::time()->getRequestTime());
+      $this->state->set('google_analytics_counter.dayquota_timestamp', $this->time->getRequestTime());
       // Add the request to the dayquota_request.
       $this->state->set('google_analytics_counter.dayquota_request', $this->state->get('google_analytics_counter.dayquota_request') + 1);
 
@@ -565,16 +552,17 @@ class GoogleAnalyticsCounterCommon {
     }
 
     // The total number of pageViews for this profile from start_date to end_date
-    $total_pageviews = $ga_feed->results->totalsForAllResults['pageviews'];
-    $this->state->set('google_analytics_counter.total_pageviews', $total_pageviews);
+    $this->state->set('google_analytics_counter.total_pageviews', $ga_feed->results->totalsForAllResults['pageviews']);
 
     // The total number of pagePaths for this profile from start_date to end_date
     $total_paths = $ga_feed->results->totalResults;
-    $this->state->set('google_analytics_counter.total_paths', $total_paths);
+    $this->state->set('google_analytics_counter.total_paths', $ga_feed->results->totalResults);
 
     // The most recent query to Google. Helpful for debugging.
-    $most_recent_query = $ga_feed->results->selfLink;
-    $this->state->set('google_analytics_counter.most_recent_query', $most_recent_query);
+    $this->state->set('google_analytics_counter.most_recent_query', $ga_feed->results->selfLink);
+
+    // The last time the Data was refreshed by Google.
+    $this->state->set('google_analytics_counter.data_last_refreshed', $ga_feed->results->dataLastRefreshed);
 
     // How many results to ask from Google Analytics in one request.
     // Default of 1000 to fit most systems (for example those with no external cron).
@@ -598,7 +586,7 @@ class GoogleAnalyticsCounterCommon {
     $this->logger->info('Retrieved @size_of items from Google Analytics data for paths @first - @second.', $t_args);
 
     // OK now increase or zero $step
-    if ($pointer <= $total_paths) {
+    if ($pointer <= $ga_feed->results->totalResults) {
       // If there are more results than what we've reached with this chunk,
       // increase step to look further during the next run.
       $new_step = $step + 1;
@@ -614,6 +602,31 @@ class GoogleAnalyticsCounterCommon {
 
     return $ga_feed;
   }
+
+  /**
+   * Programatically revoke token.
+   */
+  public function revoke() {
+    $this->state->deleteMultiple([
+      'google_analytics_counter.access_token',
+      'google_analytics_counter.chunk_process_time',
+      'google_analytics_counter.cron_next_execution',
+      'google_analytics_counter.data_last_refreshed',
+      'google_analytics_counter.data_step',
+      'google_analytics_counter.dayquota_request',
+      'google_analytics_counter.dayquota_timestamp',
+      'google_analytics_counter.expires_at',
+      'google_analytics_counter.most_recent_query',
+      'google_analytics_counter.refresh_token',
+      'google_analytics_counter.total_nodes',
+      'google_analytics_counter.total_pageviews',
+      'google_analytics_counter.total_paths',
+    ]);
+  }
+
+  /****************************************************************************/
+  // Helper functions.
+  /****************************************************************************/
 
   /**
    * Prints a warning message when not authenticated.
@@ -646,6 +659,34 @@ class GoogleAnalyticsCounterCommon {
     ];
     return $build;
   }
+
+  /**
+   * Get the row count of a table, sometimes with conditions.
+   *
+   * @param string $table
+   * @return mixed
+   */
+  public function getCount($table) {
+    switch ($table) {
+      case 'google_analytics_counter_storage':
+        $query = $this->connection->select($table, 't');
+        $query->addField('t', 'field_pageview_total');
+        $query->condition('pageview_total', 0, '!=');
+        break;
+      case 'google_analytics_counter_storage_all_nodes':
+        $query = $this->connection->select('google_analytics_counter_storage', 't');
+        break;
+      case 'queue':
+        $query = $this->connection->select('queue', 'q');
+        $query->condition('name', 'google_analytics_counter_worker', '=');
+        break;
+      default:
+        $query = $this->connection->select($table, 't');
+        break;
+    }
+    return $query->countQuery()->execute()->fetchField();
+  }
+
 
 
 }

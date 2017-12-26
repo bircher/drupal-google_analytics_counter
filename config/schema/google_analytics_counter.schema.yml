@@ -20,6 +20,9 @@ google_analytics_counter.settings:
         cache_length:
           type: integer
           label: 'The minimum time in hours to elapse between getting fresh data for the same query from Google Analytics'
+        queue_time:
+          type: integer
+          label: 'The length of time the queue should be run'
         start_date:
           type: string
           label: 'The start date for Google Analytics queries'
@@ -37,10 +40,10 @@ google_analytics_counter.settings:
           label: 'Override the counter of the core statistics module'
         profile_id:
           type: string
-          label: 'The Google Analytics view to use'
+          label: 'The Google Analytics view (profile) to use'
         profile_id_prefill:
           type: string
-          label: 'Prefill the Google Analytics view id to use'
+          label: 'Prefill with a Google Analytics view (profile) id '
         client_id:
           type: string
           label: 'Client ID created for the app'

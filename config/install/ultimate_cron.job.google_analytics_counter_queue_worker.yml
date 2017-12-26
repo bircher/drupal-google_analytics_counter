@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - google_analytics_counter
+title: 'Google Analytics Counter'
+id: google_analytics_counter_worker
+weight: 0
+module: google_analytics_counter
+callback: google_analytics_counter_cron
+scheduler:
+  id: crontab
+  configuration:
+    rules:
+      - '10,21,32,43,54 3-5/1 * * *'
+    catch_up: 0
+launcher:
+  id: serial
+  configuration:
+    timeouts:
+      lock_timeout: 3600  
+    launcher:
+      thread: 0
+logger:
+  id: database
+  configuration:
+    method: '3'
+    expire: 1209600
+    retain: 1000

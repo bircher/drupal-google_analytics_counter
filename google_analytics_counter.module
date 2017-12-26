@@ -7,6 +7,7 @@
 
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\msk\MskEnvironment;
 use Drupal\node\NodeInterface;
 
 /**
@@ -24,6 +25,10 @@ function google_analytics_counter_help($route_name, RouteMatchInterface $route_m
  * Implements hook_cron().
  */
 function google_analytics_counter_cron() {
+  // Exit cron if not in Production environment.
+  if (!MskEnvironment::isProduction()) {
+    return FALSE;
+  }
 
   $config = \Drupal::config('google_analytics_counter.settings');
 
@@ -35,7 +40,7 @@ function google_analytics_counter_cron() {
 
   // We don't want to act every time cron runs, which could be every minute.
   // To avoid this interval, set cron_interval to 0.
-  if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('google_analytics_counter.last_cron_run') + $interval) {
+  if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('system.cron_last') + $interval) {
     /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
     $common = Drupal::service('google_analytics_counter.common');
     $queue = \Drupal::queue('google_analytics_counter_worker');
@@ -65,7 +70,6 @@ function google_analytics_counter_cron() {
     catch (RuntimeException $e) {
       \Drupal::logger('google_analytics_counter')->alert('Cron experienced a problem: ' . $e->getMessage());
     }
-    \Drupal::state()->set('google_analytics_counter.last_cron_run', \Drupal::time()->getRequestTime());
   }
 }
 
@@ -121,4 +125,12 @@ function google_analytics_counter_requirements($phase) {
   }
 
   return $requirements;
+}
+
+/**
+ * Implements hook_queue_info_alter
+ */
+function google_analytics_counter_queue_info_alter(&$queues) {
+  $config = \Drupal::config('google_analytics_counter.settings');
+  $queues['google_analytics_counter_worker']['cron']['time'] = $config->get('general_settings.queue_time');
 }

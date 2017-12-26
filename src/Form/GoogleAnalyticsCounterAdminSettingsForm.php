@@ -81,8 +81,10 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $form['cron_interval'] = [
       '#type' => 'number',
-      '#title' => $this->t('Minimum time to wait before fetching Google Analytics data'),
+      '#title' => $this->t('Minimum time to wait before fetching Google Analytics data (in minutes)'),
       '#default_value' => $config->get('general_settings.cron_interval'),
+      '#min' => 0,
+      '#max' => 10000,
       '#description' => $this->t('Google Analytics data is fetched and processed during cron. If cron runs too frequently, the Google Analytics daily quota may be <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas" target="_blank">exceeded</a>.<br />Set the minimum number of <em>minutes</em> that need to pass before the Google Analytics Counter cron runs. Default: 30 minutes.'),
       '#required' => TRUE,
     ];
@@ -93,7 +95,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('general_settings.chunk_to_fetch'),
       '#min' => 1,
       '#max' => 10000,
-      '#description' => $this->t('How many items will be fetched from Google Analytics in one request (during a cron run). The maximum allowed by Google is 10000. Default: 1000 items.'),
+      '#description' => $this->t('How many items will be fetched from Google Analytics in one request. The maximum allowed by Google is 10000. Default: 1000 items.'),
       '#required' => TRUE,
     ];
 
@@ -101,18 +103,33 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#type' => 'number',
       '#title' => $this->t('Maximum GA API requests per day'),
       '#default_value' => $config->get('general_settings.api_dayquota'),
-      '#size' => 9,
-      '#maxlength' => 9,
+      '#min' => 1,
+      '#max' => 10000,
       '#description' => $this->t('This is the daily limit of requests <strong>per view (profile)</strong> per day (cannot be increased). You don\'t need to change this value until Google changes their quota policy. <br />See <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas" target="_blank">Limits and Quotas on API Requests</a> for information on Google\'s quota policies. To exceed Google\'s quota limits, look for <a href="https://developers.google.com/analytics/devguides/reporting/core/v3/limits-quotas#full_quota" target="_blank">Exceeding quota limits</a> on the same page.'),
       '#required' => TRUE,
     ];
 
     $form['cache_length'] = [
       '#type' => 'number',
-      '#title' => t('Google Analytics query cache'),
-      '#description' => t('Limit the minimum time in hours to elapse between getting fresh data for the same query from Google Analytics. Defaults to 1 day.'),
+      '#title' => t('Google Analytics query cache (in hours)'),
+      '#description' => t('Limit the minimum time in hours to elapse between getting fresh data for the same query from Google Analytics. Default: 24 hours.'),
       '#default_value' => $config->get('general_settings.cache_length') / 3600,
+      '#min' => 1,
+      '#max' => 10000,
       '#required' => TRUE,
+    ];
+
+    $t_args = [
+      '%queue_count' => $this->common->getCount('queue'),
+    ];
+    $form['queue_time'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Queue Time (in seconds)'),
+      '#default_value' => $config->get('general_settings.queue_time'),
+      '#min' => 1,
+      '#max' => 10000,
+      '#required' => TRUE,
+      '#description' => $this->t('%queue_count is the number of items in the queue. The number of items in the queue should be 0 after cron runs.<br /><strong>Note:</strong> Having 0 items in the queue confirms that pageview counts are up to date. Increase Queue Time to process all the queued items. Default: 120 seconds.', $t_args),
     ];
 
     // Google Analytics start date settings.
@@ -207,11 +224,11 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     ];
     $form['profile_id_prefill'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Prefill a Google view ID'),
+      '#title' => $this->t('Prefill a Google view (profile) ID'),
       '#default_value' => $config->get('general_settings.profile_id_prefill'),
       '#size' => 20,
       '#maxlength' => 20,
-      '#description' => $this->t('If you know which Google view you will be using, you may enter its ID here. Otherwise, you <u>must</u> come back to this form after you have <a href=:href>@href</a> and select a view from the list in <strong>Google Views IDs</strong>.<br />Find your Google Views in your <a href="https://360suite.google.com/orgs?authuser=0" target="_blank">Google Analytics 360 Suite</a>. Currently Google Views IDs are eight digit numbers, e.g. 32178653', $t_args),
+      '#description' => $this->t('If you know which Google view (profile) you will be using, you may enter its ID here. Otherwise, you <u>must</u> come back to this form after you have <a href=:href>@href</a> and select a view (profile) from the list in <strong>Google Views (Profiles) IDs</strong>.<br />Refer to your Google Views at <a href="https://360suite.google.com/orgs?authuser=0" target="_blank">Google Analytics 360 Suite</a>. Google Views (Profiles) IDs are eight digit numbers, e.g. 32178653', $t_args),
       '#states' => [
         'visible' => [
           ':input[name="profile_id"]' => ['empty' => TRUE],
@@ -221,14 +238,14 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $options = $this->common->getWebPropertiesOptions();
     if (!$options) {
-      $options = [$config->get('general_settings.profile_id') => 'Un-authenticated (' . $config->get('general_settings.profile_id') . ')'];
+      $options = [$config->get('general_settings.profile_id') => 'Unauthenticated (' . $config->get('general_settings.profile_id') . ')'];
     }
     $form['profile_id'] = [
       '#type' => 'select',
-      '#title' => $this->t('Google Views IDs'),
+      '#title' => $this->t('Google Views (Profiles) IDs'),
       '#options' => $options,
       '#default_value' => $config->get('general_settings.profile_id'),
-      '#description' => $this->t('Choose your Google Analytics view. The options depend on the authenticated account.'),
+      '#description' => $this->t('Choose a Google Analytics view (profile). The options depend on the authenticated account.<br />If you are not authenticated, <strong>Google Views (Profiles) IDs</strong> lists only Unauthenticated () as an option.'),
     ];
 
     $form['setup'] = [
@@ -265,7 +282,6 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#weight' => -7,
     ];
 
-    // It's a weak test but better than none.
     if (empty($config->get('general_settings.profile_id'))) {
         $this->common->notAuthenticatedMessage();
     }
@@ -283,6 +299,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       ->set('general_settings.chunk_to_fetch', $form_state->getValue('chunk_to_fetch'))
       ->set('general_settings.api_dayquota', $form_state->getValue('api_dayquota'))
       ->set('general_settings.cache_length', $form_state->getValue('cache_length') * 3600)
+      ->set('general_settings.queue_time', $form_state->getValue('queue_time'))
       ->set('general_settings.start_date', $form_state->getValue('start_date'))
       ->set('general_settings.advanced_date_checkbox', $form_state->getValue('advanced_date_checkbox'))
       ->set('general_settings.fixed_start_date', $form_state->getValue('advanced_date_checkbox') == 1 ? $form_state->getValue('fixed_start_date') : '')
