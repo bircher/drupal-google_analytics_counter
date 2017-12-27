@@ -3,7 +3,7 @@ status: true
 dependencies:
   module:
     - google_analytics_counter
-title: 'Google Analytics Counter'
+title: 'Default cron handler'
 id: google_analytics_counter_worker
 weight: 0
 module: google_analytics_counter

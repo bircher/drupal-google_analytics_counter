@@ -295,6 +295,11 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('google_analytics_counter.settings');
 
+    // hook_queue_info_alter() requires a cache rebuild.
+    if ($form_state->getValue('queue_time') != $config->get('general_settings.queue_time')) {
+      drupal_flush_all_caches();
+    }
+
     $config->set('general_settings.cron_interval', $form_state->getValue('cron_interval'))
       ->set('general_settings.chunk_to_fetch', $form_state->getValue('chunk_to_fetch'))
       ->set('general_settings.api_dayquota', $form_state->getValue('api_dayquota'))

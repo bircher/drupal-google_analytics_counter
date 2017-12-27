@@ -8,7 +8,6 @@ use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
-use Drupal\msk\MskEnvironment;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -140,7 +139,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#suffix' => '</p>',
     ];
 
-    $data_last_refreshed = $this->state->get('google_analytics_counter.data_last_refreshed') ? $this->dateFormatter->format($this->state->get('google_analytics_counter.data_last_refreshed'), 'large') : 0;
+    $data_last_refreshed = $this->state->get('google_analytics_counter.data_last_refreshed') ? $this->dateFormatter->format($this->state->get('google_analytics_counter.data_last_refreshed'), 'custom', 'M d, Y h:i:sa') : 0;
     $build['google_info']['data_last_refreshed'] = [
       '#markup' => $this->t('%data_last_refreshed is when Google last refreshed its data.', ['%data_last_refreshed' => $data_last_refreshed]),
       '#prefix' => '<p>',
@@ -241,8 +240,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $temp = $this->state->get('google_analytics_counter.cron_next_execution') - $this->time->getRequestTime();
-    // Modification for MSK.
-    if ($temp < 0 && MskEnvironment::isLocal()) {
+    if ($temp < 0) {
       // Run cron immediately.
       $destination = \Drupal::destination()->getAsArray();
       $t_args = [
