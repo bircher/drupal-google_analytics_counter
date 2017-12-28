@@ -95,7 +95,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     // The Google section
     $build['google_info'] = [
       '#type' => 'details',
-      '#title' => $this->t('Information from Google'),
+      '#title' => $this->t('Information from Google Analytics API'),
       '#open' => TRUE,
     ];
 

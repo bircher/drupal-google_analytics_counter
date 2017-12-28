@@ -113,9 +113,9 @@ function google_analytics_counter_requirements($phase) {
   else {
     $requirements['google_analytics_counter_authentication'] = [
       'title' => t('Google Analytics Counter'),
-      'description' => t('No Google Analytics profile has been authenticated. Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args),
+      'description' => t('Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args),
       'severity' => REQUIREMENT_ERROR,
-      'value' => t('No Google Analytics profile has been authenticated!'),
+      'value' => t('Google Analytics have not been authenticated!'),
     ];
   }
 

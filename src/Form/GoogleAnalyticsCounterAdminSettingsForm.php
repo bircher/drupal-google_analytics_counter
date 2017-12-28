@@ -224,7 +224,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     ];
     $form['profile_id_prefill'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Prefill a Google view (profile) ID'),
+      '#title' => $this->t('Prefill a Google View (Profile) ID'),
       '#default_value' => $config->get('general_settings.profile_id_prefill'),
       '#size' => 20,
       '#maxlength' => 20,
@@ -275,10 +275,10 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $form['setup']['redirect_uri'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Redirect URI'),
+      '#title' => $this->t('Authorized redirect URI'),
       '#default_value' => $config->get('general_settings.redirect_uri'),
       '#size' => 30,
-      '#description' => $this->t('Use to override the host for the callback uri (necessary on some servers, e.g. when using SSL and Varnish). Leave blank to use default (blank will work for most cases).<br /> Default: <strong>@default_uri/authentication</strong>', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
+      '#description' => $this->t('Add the path that users are redirected to after they have authenticated with Google.<br /> Default: <strong>@default_uri/authentication</strong>', ['@default_uri' => GoogleAnalyticsCounterFeed::currentUrl()]),
       '#weight' => -7,
     ];
 

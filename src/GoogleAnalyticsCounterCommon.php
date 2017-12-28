@@ -637,7 +637,7 @@ class GoogleAnalyticsCounterCommon {
         ->toString(),
       '@href' => 'authenticate here',
     ];
-    drupal_set_message($this->t('No Google Analytics profile has been authenticated! Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
+    drupal_set_message($this->t('Google Analytics have not been authenticated! Google Analytics Counter cannot fetch any new data. Please <a href=:href>@href</a>.', $t_args), 'warning');
   }
 
   /**
