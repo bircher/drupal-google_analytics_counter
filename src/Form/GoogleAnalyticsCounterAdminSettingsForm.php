@@ -129,7 +129,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#min' => 1,
       '#max' => 10000,
       '#required' => TRUE,
-      '#description' => $this->t('%queue_count is the number of items in the queue. The number of items in the queue should be 0 after cron runs.<br /><strong>Note:</strong> Having 0 items in the queue confirms that pageview counts are up to date. Increase Queue Time to process all the queued items. Default: 120 seconds.', $t_args),
+      '#description' => $this->t('%queue_count items are in the queue. The number of items in the queue should be 0 after cron runs.<br /><strong>Note:</strong> Having 0 items in the queue confirms that pageview counts are up to date. Increase Queue Time to process all the queued items. Default: 120 seconds.', $t_args),
     ];
 
     // Google Analytics start date settings.
@@ -238,14 +238,14 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
 
     $options = $this->common->getWebPropertiesOptions();
     if (!$options) {
-      $options = [$config->get('general_settings.profile_id') => 'Unauthenticated (' . $config->get('general_settings.profile_id') . ')'];
+      $options = [$config->get('general_settings.profile_id') => 'Unauthenticated'];
     }
     $form['profile_id'] = [
       '#type' => 'select',
       '#title' => $this->t('Google Views (Profiles) IDs'),
       '#options' => $options,
       '#default_value' => $config->get('general_settings.profile_id'),
-      '#description' => $this->t('Choose a Google Analytics view (profile). The options depend on the authenticated account.<br />If you are not authenticated, <strong>Google Views (Profiles) IDs</strong> lists only Unauthenticated () as an option.'),
+      '#description' => $this->t('Choose a Google Analytics view (profile). The options depend on the authenticated account.<br />If you are not authenticated, \'Unauthenticated\' is the only available option.'),
     ];
 
     $form['setup'] = [

@@ -370,7 +370,6 @@ class GoogleAnalyticsCounterCommon {
   public function getChunkedResults($index = 0) {
     $config = $this->config;
 
-    // Non-DRY code.
     $step = $this->state->get('google_analytics_counter.data_step');
     $chunk = $config->get('general_settings.chunk_to_fetch');
 

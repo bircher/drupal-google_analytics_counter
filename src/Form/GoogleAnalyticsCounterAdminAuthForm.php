@@ -83,8 +83,8 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     if ($this->common->isAuthenticated() === TRUE) {
       $form['revoke'] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Revoke authentication to Google Analytics'),
-        '#description' => $this->t('This action will disconnect this site from Google Analytics.'),
+        '#title' => $this->t('Revoke authentication'),
+        '#description' => $this->t('This action will revoke authentication from Google Analytics.'),
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
         '#weight' => 5,
@@ -97,14 +97,14 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     else {
       $form['setup'] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Authentication setup'),
-        '#description' => $this->t("This action will redirect you to Google. Login with the account whose profile you'd like to use."),
+        '#title' => $this->t('Set up authentication'),
+        '#description' => $this->t("This action will redirect you to Google. Login with the account you'd like to use."),
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
       ];
       $form['setup']['setup_submit'] = [
         '#type' => 'submit',
-        '#value' => $this->t('Set up authentication'),
+        '#value' => $this->t('Authenticate'),
       ];
     }
 
@@ -120,7 +120,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
       $op = '';
     }
     switch ($op) {
-      case 'Set up authentication':
+      case 'Authenticate':
         $this->common->beginAuthentication();
         if (!empty($config->get('general_settings.profile_id_prefill'))) {
           \Drupal::configFactory()
