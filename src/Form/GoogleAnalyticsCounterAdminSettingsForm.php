@@ -245,7 +245,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Google Views (Profiles) IDs'),
       '#options' => $options,
       '#default_value' => $config->get('general_settings.profile_id'),
-      '#description' => $this->t('Choose a Google Analytics view (profile). The options depend on the authenticated account.<br />If you are not authenticated, \'Unauthenticated\' is the only available option.'),
+      '#description' => $this->t('Choose a Google Analytics view (profile). The options depend on the authenticated account.<br />If you are not authenticated, \'Unauthenticated\' is the only available option. See the README.md included with this module.'),
     ];
 
     $form['setup'] = [

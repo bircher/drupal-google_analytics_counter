@@ -204,7 +204,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     // See https://www.drupal.org/node/2275575
     \Drupal::moduleHandler()->moduleExists('statistics') ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
     $build['drupal_info']['total_nodes_with_pageviews'] = [
-      '#markup' => $this->t('%num_of_results nodes on this site that have pageview counts <em>greater than zero</em>.', ['%num_of_results' => number_format($this->common->getCount($table))]),
+      '#markup' => $this->t('%num_of_results nodes on this site have pageview counts <em>greater than zero</em>.', ['%num_of_results' => number_format($this->common->getCount($table))]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -213,7 +213,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '%num_of_results' => number_format($this->common->getCount('google_analytics_counter_storage_all_nodes')),
     ];
     $build['drupal_info']['total_nodes_equal_zero'] = [
-      '#markup' => $this->t('%num_of_results nodes on this site that have pageview counts.<br /><strong>Note:</strong> The nodes on this site that have pageview counts should equal the number of published nodes.', $t_args),
+      '#markup' => $this->t('%num_of_results nodes on this site have pageview counts.<br /><strong>Note:</strong> The nodes on this site that have pageview counts should equal the number of published nodes.', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];

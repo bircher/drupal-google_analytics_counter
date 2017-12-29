@@ -434,18 +434,26 @@ class GoogleAnalyticsCounterCommon {
    *   The count wrapped in a span.
    */
   public function displayGaCount($path) {
-
     // Make sure the path starts with a slash
     $path = '/'. trim($path, ' /');
+    // Look up the alias, with, and without trailing slash.
+    $aliases = [
+      $this->aliasManager->getAliasByPath($path),
+      $path,
+      $path . '/',
+    ];
 
-    $path = $this->aliasManager->getAliasByPath($path);
+    $hashes = array_map('md5', $aliases);
+    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
+      ->fields('gac', array('pageviews'))
+      ->condition('pagepath_hash', $hashes, 'IN')
+      ->execute();
+    $sum_of_pageviews = 0;
+    foreach ($pathcounts as $pathcount) {
+      $sum_of_pageviews += $pathcount->pageviews;
+    }
 
-    $query = $this->connection->select('google_analytics_counter', 'gac');
-    $query->fields('gac', ['pageviews']);
-    $query->condition('pagepath', $path);
-    $pageviews = $query->execute()->fetchField();
-
-    return number_format($pageviews);
+    return number_format($sum_of_pageviews);
   }
 
   /**
