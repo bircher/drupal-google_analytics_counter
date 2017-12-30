@@ -12,7 +12,7 @@
  */
 function google_analytics_counter_schema() {
   $schema['google_analytics_counter'] = array(
-    'description' => 'Google Analytics data storage.',
+    'description' => 'Stores URIs and pageviews from Google Analytics.',
     'fields' => array(
       'pagepath_hash' => array(
         'type' => 'varchar',
@@ -47,7 +47,7 @@ function google_analytics_counter_schema() {
   );
 
   $schema['google_analytics_counter_storage'] = array(
-    'description' => 'Google Analytics Counter module table holding pageview counts.',
+    'description' => 'Stores node ids for nodes only that have pageview totals.',
     'fields' => array(
       'nid' => array(
         'description' => 'Node IDs',

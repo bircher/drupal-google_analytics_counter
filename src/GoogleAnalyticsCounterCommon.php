@@ -7,6 +7,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Path\AliasManagerInterface;
+use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
@@ -52,6 +53,13 @@ class GoogleAnalyticsCounterCommon {
   protected $aliasManager;
 
   /**
+   * The path matcher.
+   *
+   * @var \Drupal\Core\Path\PathMatcherInterface
+   */
+  protected $pathMatcher;
+
+  /**
    * The language manager to get all languages for to get all aliases.
    *
    * @var \Drupal\Core\Language\LanguageManagerInterface
@@ -88,14 +96,17 @@ class GoogleAnalyticsCounterCommon {
    *   A database connection.
    * @param \Drupal\Core\Path\AliasManagerInterface $alias_manager
    *   The path alias manager to find aliased resources.
+   * @param \Drupal\Core\Path\PathMatcherInterface $path_matcher
+   *   The path matcher.
    * @param \Psr\Log\LoggerInterface $logger
    *   A logger instance.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, Connection $connection, AliasManagerInterface $alias_manager, LanguageManagerInterface $language, LoggerInterface $logger) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, Connection $connection, AliasManagerInterface $alias_manager, PathMatcherInterface $path_matcher, LanguageManagerInterface $language, LoggerInterface $logger) {
     $this->config = $config_factory->get('google_analytics_counter.settings');
     $this->state = $state;
     $this->connection = $connection;
     $this->aliasManager = $alias_manager;
+    $this->pathMatcher = $path_matcher;
     $this->languageManager = $language;
     $this->logger = $logger;
     $this->time = \Drupal::service('datetime.time');
@@ -259,103 +270,9 @@ class GoogleAnalyticsCounterCommon {
     return time() + $config->get('general_settings.cache_length');
   }
 
-  /**
-   * Convert seconds to hours, minutes and seconds.
-   */
-  public function sec2hms($sec, $pad_hours = FALSE) {
-
-    // Start with a blank string.
-    $hms = "";
-
-    // Do the hours first: there are 3600 seconds in an hour, so if we divide
-    // the total number of seconds by 3600 and throw away the remainder, we're
-    // left with the number of hours in those seconds.
-    $hours = intval(intval($sec) / 3600);
-
-    // Add hours to $hms (with a leading 0 if asked for).
-    $hms .= ($pad_hours)
-      ? str_pad($hours, 2, "0", STR_PAD_LEFT) . "h "
-      : $hours . "h ";
-
-    // Dividing the total seconds by 60 will give us the number of minutes
-    // in total, but we're interested in *minutes past the hour* and to get
-    // this, we have to divide by 60 again and then use the remainder.
-    $minutes = intval(($sec / 60) % 60);
-
-    // Add minutes to $hms (with a leading 0 if needed).
-    $hms .= str_pad($minutes, 2, "0", STR_PAD_LEFT) . "m ";
-
-    // Seconds past the minute are found by dividing the total number of seconds
-    // by 60 and using the remainder.
-    $seconds = intval($sec % 60);
-
-    // Add seconds to $hms (with a leading 0 if needed).
-    $hms .= str_pad($seconds, 2, "0", STR_PAD_LEFT);
-
-    // done!
-    return $hms . 's';
-  }
-
   public function beginAuthentication() {
     $gafeed = new GoogleAnalyticsCounterFeed();
     $gafeed->beginAuthentication($this->config->get('general_settings.client_id'), $this->getRedirectUri());
-  }
-
-  /**
-   * Save the pageview count for a given node.
-   *
-   * @param integer $nid
-   *   The node id of the node for which to save the data.
-   */
-  public function updateStorage($nid) {
-
-    // Get all the aliases for a given node id.
-    $aliases = [];
-    $path = '/node/' . $nid;
-    $aliases[] = $path;
-    foreach ($this->languageManager->getLanguages() as $language) {
-      $alias = $this->aliasManager->getAliasByPath($path, $language->getId());
-      $aliases[] = $alias;
-      if (array_key_exists($language->getId(), $this->prefixes) && $this->prefixes[$language->getId()]) {
-        $aliases[] = '/' . $this->prefixes[$language->getId()] . $path;
-        $aliases[] = '/' . $this->prefixes[$language->getId()] . $alias;
-      }
-    }
-
-    // Add also all versions with a trailing slash.
-    $aliases = array_merge($aliases, array_map(function ($path) {
-      return $path . '/';
-    }, $aliases));
-
-    // Look up the count via the hash of the path.
-    $aliases = array_unique($aliases);
-    $hashes = array_map('md5', $aliases);
-    $path_counts = $this->connection->select('google_analytics_counter', 'gac')
-      ->fields('gac', ['pageviews'])
-      ->condition('pagepath_hash', $hashes, 'IN')
-      ->execute();
-    $sum_of_pageviews = 0;
-    foreach ($path_counts as $path_count) {
-      $sum_of_pageviews += $path_count->pageviews;
-    }
-
-    // Always save the data in our table.
-    $this->connection->merge('google_analytics_counter_storage')
-      ->key(['nid' => $nid])
-      ->fields(['pageview_total' => $sum_of_pageviews])
-      ->execute();
-
-    // If we selected to override the storage with the statistics module.
-    if ($this->config->get('general_settings.overwrite_statistics')) {
-      $this->connection->merge('node_counter')
-        ->key(['nid' => $nid])
-        ->fields([
-          'totalcount' => $sum_of_pageviews,
-          'timestamp' => $this->time->getRequestTime(),
-        ])
-        ->execute();
-    }
-
   }
 
   /**
@@ -426,34 +343,53 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
-   * Get the count of pageviews for a path.
+   * Save the pageview count for a given node.
    *
-   * @param string $path
-   *   The path to look up
-   * @return string
-   *   The count wrapped in a span.
+   * @param integer $nid
+   *   The node id of the node for which to save the data.
    */
-  public function displayGaCount($path) {
-    // Make sure the path starts with a slash
-    $path = '/'. trim($path, ' /');
-    // Look up the alias, with, and without trailing slash.
-    $aliases = [
-      $this->aliasManager->getAliasByPath($path),
-      $path,
-      $path . '/',
-    ];
+  public function updateStorage($nid) {
 
-    $hashes = array_map('md5', $aliases);
-    $pathcounts = $this->connection->select('google_analytics_counter', 'gac')
-      ->fields('gac', array('pageviews'))
-      ->condition('pagepath_hash', $hashes, 'IN')
-      ->execute();
-    $sum_of_pageviews = 0;
-    foreach ($pathcounts as $pathcount) {
-      $sum_of_pageviews += $pathcount->pageviews;
+    // Get all the aliases for a given node id.
+    $aliases = [];
+    $path = '/node/' . $nid;
+    $aliases[] = $path;
+    foreach ($this->languageManager->getLanguages() as $language) {
+      $alias = $this->aliasManager->getAliasByPath($path, $language->getId());
+      $aliases[] = $alias;
+      if (array_key_exists($language->getId(), $this->prefixes) && $this->prefixes[$language->getId()]) {
+        $aliases[] = '/' . $this->prefixes[$language->getId()] . $path;
+        $aliases[] = '/' . $this->prefixes[$language->getId()] . $alias;
+      }
     }
 
-    return number_format($sum_of_pageviews);
+    // Add also all versions with a trailing slash.
+    $aliases = array_merge($aliases, array_map(function ($path) {
+      return $path . '/';
+    }, $aliases));
+
+    // It's the front page
+    // Todo: This line smells bad
+    if ($nid == substr(\Drupal::configFactory()->get('system.site')->get('page.front'), 6)) {
+      $sum_of_pageviews = $this->sumPageviews(['/']);
+      $this->mergeGoogleAnalyticsCounterStorage($nid, $sum_of_pageviews);
+    }
+    else {
+      $sum_of_pageviews = $this->sumPageviews(array_unique($aliases));
+      $this->mergeGoogleAnalyticsCounterStorage($nid, $sum_of_pageviews);
+    }
+
+    // If we selected to override the storage with the statistics module.
+    if ($this->config->get('general_settings.overwrite_statistics')) {
+      // Todo conditionalize for isFrontPage()
+      $this->connection->merge('node_counter')
+        ->key(['nid' => $nid])
+        ->fields([
+          'totalcount' => $sum_of_pageviews,
+          'timestamp' => $this->time->getRequestTime(),
+        ])
+        ->execute();
+    }
   }
 
   /**
@@ -611,6 +547,74 @@ class GoogleAnalyticsCounterCommon {
   }
 
   /**
+   * Get the count of pageviews for a path.
+   *
+   * @param string $path
+   *   The path to look up
+   * @return string
+   */
+  public function displayGaCount($path) {
+    // Make sure the path starts with a slash
+    $path = '/'. trim($path, ' /');
+
+    // It's the front page
+
+    if ($this->pathMatcher->isFrontPage()) {
+      $aliases = ['/'];
+      $sum_of_pageviews = $this->sumPageviews($aliases);
+    }
+    else {
+      // Look up the alias, with, and without trailing slash.
+      $aliases = [
+        $this->aliasManager->getAliasByPath($path),
+        $path,
+        $path . '/',
+      ];
+
+      $sum_of_pageviews = $this->sumPageviews($aliases);
+    }
+
+    return number_format($sum_of_pageviews);
+  }
+
+  /**
+   * Look up the count via the hash of the pathes.
+   *
+   * @param $aliases
+   * @return string
+   */
+  protected function sumPageviews($aliases) {
+
+    // $aliases will usually make pageview_total be slightly greater than
+    // pageviews because $aliases can include page aliases and node/id URIs.
+
+    $hashes = array_map('md5', $aliases);
+    $path_counts = $this->connection->select('google_analytics_counter', 'gac')
+      ->fields('gac', ['pageviews'])
+      ->condition('pagepath_hash', $hashes, 'IN')
+      ->execute();
+    $sum_of_pageviews = 0;
+    foreach ($path_counts as $path_count) {
+      $sum_of_pageviews += $path_count->pageviews;
+    }
+    return $sum_of_pageviews;
+  }
+
+  /**
+   * Merge the sum of pageviews into google_analytics_counter_storage.
+   *
+   * @param $nid
+   * @param $sum_of_pageviews
+   */
+  protected function mergeGoogleAnalyticsCounterStorage($nid, $sum_of_pageviews) {
+    // Always save the data in our table.
+    $this->connection->merge('google_analytics_counter_storage')
+      ->key(['nid' => $nid])
+      ->fields(['pageview_total' => $sum_of_pageviews])
+      ->execute();
+  }
+
+  /**
    * Programatically revoke token.
    */
   public function revoke() {
@@ -634,6 +638,43 @@ class GoogleAnalyticsCounterCommon {
   /****************************************************************************/
   // Helper functions.
   /****************************************************************************/
+
+  /**
+   * Convert seconds to hours, minutes and seconds.
+   */
+  public function sec2hms($sec, $pad_hours = FALSE) {
+
+    // Start with a blank string.
+    $hms = "";
+
+    // Do the hours first: there are 3600 seconds in an hour, so if we divide
+    // the total number of seconds by 3600 and throw away the remainder, we're
+    // left with the number of hours in those seconds.
+    $hours = intval(intval($sec) / 3600);
+
+    // Add hours to $hms (with a leading 0 if asked for).
+    $hms .= ($pad_hours)
+      ? str_pad($hours, 2, "0", STR_PAD_LEFT) . "h "
+      : $hours . "h ";
+
+    // Dividing the total seconds by 60 will give us the number of minutes
+    // in total, but we're interested in *minutes past the hour* and to get
+    // this, we have to divide by 60 again and then use the remainder.
+    $minutes = intval(($sec / 60) % 60);
+
+    // Add minutes to $hms (with a leading 0 if needed).
+    $hms .= str_pad($minutes, 2, "0", STR_PAD_LEFT) . "m ";
+
+    // Seconds past the minute are found by dividing the total number of seconds
+    // by 60 and using the remainder.
+    $seconds = intval($sec % 60);
+
+    // Add seconds to $hms (with a leading 0 if needed).
+    $hms .= str_pad($seconds, 2, "0", STR_PAD_LEFT);
+
+    // done!
+    return $hms . 's';
+  }
 
   /**
    * Prints a warning message when not authenticated.
@@ -693,7 +734,5 @@ class GoogleAnalyticsCounterCommon {
     }
     return $query->countQuery()->execute()->fetchField();
   }
-
-
 
 }
