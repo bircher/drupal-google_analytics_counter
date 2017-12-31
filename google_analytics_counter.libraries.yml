@@ -1,0 +1,5 @@
+google_analytics_counter:
+  version: 1.0
+  css:
+    theme:
+      css/google_analytics_counter.module.css: {}

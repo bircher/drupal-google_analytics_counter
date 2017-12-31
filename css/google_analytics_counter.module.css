@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Google Analytics Counter miscellaneous styling.
+ */
+
+details.google-analytics-counter-counter.js-form-wrapper.form-wrapper {
+  width: 48%;
+  display: inline-block;
+}
+details.google-analytics-counter-storage.js-form-wrapper.form-wrapper {
+  width: 48%;
+  display: inline-block;
+}

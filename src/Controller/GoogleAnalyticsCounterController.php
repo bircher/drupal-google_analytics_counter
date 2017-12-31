@@ -127,7 +127,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     // Google Query
     $build['google_info']['google_query'] = [
       '#type' => 'details',
-      '#title' => $this->t('most recent query to Google'),
+      '#title' => $this->t('Most recent query to Google'),
       '#open' => FALSE,
     ];
 
@@ -228,6 +228,67 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#markup' => $this->t('%queue_count items are in the queue. The number of items in the queue should be 0 after cron runs.<br /><strong>Note:</strong> Having 0 items in the queue confirms that pageview counts are up to date. Increase Queue Time on the <a href=:href>@href</a> to process all the queued items.', $t_args),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
+    ];
+
+    // Top Twenty Results
+    $build['drupal_info']['top_twenty_results'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Top Twenty Results'),
+      '#open' => FALSE,
+    ];
+
+    // Top Twenty Results for Google Analytics Counter table
+    $build['drupal_info']['top_twenty_results']['counter'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Pagepaths'),
+      '#open' => FALSE,
+      '#attributes' => [
+        'class' => ['google-analytics-counter-counter'],
+      ],
+    ];
+
+    $build['drupal_info']['top_twenty_results']['counter']['summary'] = [
+      '#markup' => $this->t('A pagepath can include paths that don\'t have an NID, like /search.'),
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+    ];
+
+    $rows = $this->common->getTopTwentyResults('google_analytics_counter');
+    // Display table
+    $build['drupal_info']['top_twenty_results']['counter']['table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Pagepath'),
+        $this->t('Pageviews'),
+      ],
+      '#rows' => $rows,
+    ];
+
+    // Top Twenty Results for Google Analytics Counter Storage table
+    $build['drupal_info']['top_twenty_results']['storage'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Pageview Totals'),
+      '#open' => FALSE,
+      '#attributes' => [
+        'class' => ['google-analytics-counter-storage'],
+      ],
+    ];
+
+    $build['drupal_info']['top_twenty_results']['storage']['summary'] = [
+      '#markup' => $this->t('A pageview total may be greater than PAGEVIEWS because a pageview total includes page aliases, node/id, and node/id/ URIs.'),
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+    ];
+
+    $rows = $this->common->getTopTwentyResults('google_analytics_counter_storage');
+    // Display table
+    $build['drupal_info']['top_twenty_results']['storage']['table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Nid'),
+        $this->t('Pageview Total'),
+      ],
+      '#rows' => $rows,
     ];
 
     $build['drupal_info']['last_cron_run'] = [

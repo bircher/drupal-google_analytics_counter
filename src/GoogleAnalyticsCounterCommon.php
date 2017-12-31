@@ -585,8 +585,8 @@ class GoogleAnalyticsCounterCommon {
    */
   protected function sumPageviews($aliases) {
 
-    // $aliases will usually make pageview_total be slightly greater than
-    // pageviews because $aliases can include page aliases and node/id URIs.
+    // $aliases can make pageview_total greater than pageviews because $aliases
+    // can include page aliases and node/id URIs.
 
     $hashes = array_map('md5', $aliases);
     $path_counts = $this->connection->select('google_analytics_counter', 'gac')
@@ -733,6 +733,47 @@ class GoogleAnalyticsCounterCommon {
         break;
     }
     return $query->countQuery()->execute()->fetchField();
+  }
+
+  /**
+   * Get the row count of a table, sometimes with conditions.
+   *
+   * @param string $table
+   * @return mixed
+   */
+  public function getTopTwentyResults($table) {
+    $query = $this->connection->select($table, 't');
+    $query->range(0, 20);
+    $rows = [];
+    switch ($table) {
+      case 'google_analytics_counter':
+        $query->fields('t', ['pagepath', 'pageviews']);
+        $query->orderBy('pageviews', 'DESC');
+        $result = $query->execute()->fetchAll();
+        $rows = [];
+        foreach ($result as $value) {
+          $rows[] = [
+            $value->pagepath,
+            $value->pageviews,
+          ];
+        }
+        break;
+      case 'google_analytics_counter_storage':
+        $query->fields('t', ['nid', 'pageview_total']);
+        $query->orderBy('pageview_total', 'DESC');
+        $result = $query->execute()->fetchAll();
+        foreach ($result as $value) {
+          $rows[] = [
+            $value->nid,
+            $value->pageview_total,
+          ];
+        }
+        break;
+      default:
+        break;
+    }
+
+    return $rows;
   }
 
 }

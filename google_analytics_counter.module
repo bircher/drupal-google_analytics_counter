@@ -15,7 +15,7 @@ use Drupal\node\NodeInterface;
 function google_analytics_counter_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.google_analytics_counter':
-      $output = file_get_contents(drupal_get_path('module', 'google_analytics_counter') . '/README.txt');;
+      $output = file_get_contents(drupal_get_path('module', 'google_analytics_counter') . '/README.md');;
       return nl2br($output);
   }
 }
@@ -128,4 +128,14 @@ function google_analytics_counter_requirements($phase) {
 function google_analytics_counter_queue_info_alter(&$queues) {
   $config = \Drupal::config('google_analytics_counter.settings');
   $queues['google_analytics_counter_worker']['cron']['time'] = $config->get('general_settings.queue_time');
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function google_analytics_counter_page_attachments(&$page) {
+  $theme = \Drupal::theme()->getActiveTheme()->getName();
+  if (in_array($theme, ['bartik', 'seven'])) {
+    $page['#attached']['library'][] = 'google_analytics_counter/google_analytics_counter';
+  }
 }
