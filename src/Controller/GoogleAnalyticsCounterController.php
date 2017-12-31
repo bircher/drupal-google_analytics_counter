@@ -292,7 +292,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $build['drupal_info']['last_cron_run'] = [
-      '#markup' => $this->t('%time ago is when cron last run.', ['%time' => $this->dateFormatter->formatTimeDiffSince($this->state->get('system.cron_last'))]),
+      '#markup' => $this->t('Cron\'s last run: %time ago.', ['%time' => $this->dateFormatter->formatTimeDiffSince($this->state->get('system.cron_last'))]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -313,10 +313,10 @@ class GoogleAnalyticsCounterController extends ControllerBase {
         '#prefix' => '<p>',
         '#suffix' => '</p>',
       ];
-
-      // Revoke Google authentication.
-      $build = $this->common->revokeAuthenticationMessage($build);
     }
+
+    // Revoke Google authentication.
+    $build = $this->common->revokeAuthenticationMessage($build);
 
     if ($this->common->isAuthenticated() === TRUE) {
       return $build;
