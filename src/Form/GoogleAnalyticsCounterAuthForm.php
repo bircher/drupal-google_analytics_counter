@@ -11,11 +11,11 @@ use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Class GoogleAnalyticsCounterAdminAuthForm.
+ * Class GoogleAnalyticsCounterAuthForm.
  *
  * @package Drupal\google_analytics_counter\Form
  */
-class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
+class GoogleAnalyticsCounterAuthForm extends FormBase {
 
   /**
    * The google_analytics_counter.settings config object.

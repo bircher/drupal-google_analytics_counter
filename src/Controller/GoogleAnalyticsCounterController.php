@@ -202,7 +202,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     // See https://www.drupal.org/node/2275575
-    \Drupal::moduleHandler()->moduleExists('statistics') ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
+    \Drupal::moduleHandler()->moduleExists('statistics') && $config->get('general_settings.overwrite_statistics') == true ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
     $build['drupal_info']['total_nodes_with_pageviews'] = [
       '#markup' => $this->t('%num_of_results nodes on this site have pageview counts <em>greater than zero</em>.', ['%num_of_results' => number_format($this->manager->getCount($table))]),
       '#prefix' => '<p>',

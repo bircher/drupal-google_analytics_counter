@@ -12,11 +12,11 @@ use Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Class GoogleAnalyticsCounterAdminSettingsForm.
+ * Class GoogleAnalyticsCounterSettingsForm.
  *
  * @package Drupal\google_analytics_counter\Form
  */
-class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
+class GoogleAnalyticsCounterSettingsForm extends ConfigFormBase {
 
   /**
    * The state keyvalue collection.

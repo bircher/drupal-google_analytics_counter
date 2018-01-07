@@ -369,7 +369,7 @@ class GoogleAnalyticsCounterManager {
     }, $aliases));
 
     // It's the front page
-    // Todo: This line smells bad
+    // Todo: Could be brittle
     if ($nid == substr(\Drupal::configFactory()->get('system.site')->get('page.front'), 6)) {
       $sum_of_pageviews = $this->sumPageviews(['/']);
       $this->mergeGoogleAnalyticsCounterStorage($nid, $sum_of_pageviews);
@@ -380,15 +380,18 @@ class GoogleAnalyticsCounterManager {
     }
 
     // If we selected to override the storage with the statistics module.
-    if ($this->config->get('general_settings.overwrite_statistics')) {
-      // Todo conditionalize for isFrontPage()
-      $this->connection->merge('node_counter')
-        ->key(['nid' => $nid])
-        ->fields([
-          'totalcount' => $sum_of_pageviews,
-          'timestamp' => $this->time->getRequestTime(),
-        ])
-        ->execute();
+    if ($this->config->get('general_settings.overwrite_statistics') == true) {
+
+      // It's the front page
+      // Todo: Could be brittle
+      if ($nid == substr(\Drupal::configFactory()->get('system.site')->get('page.front'), 6)) {
+        $sum_of_pageviews = $this->sumPageviews(['/']);
+        $this->mergeNodeCounter($nid, $sum_of_pageviews);
+      }
+      else {
+        $sum_of_pageviews = $this->sumPageviews(array_unique($aliases));
+        $this->mergeNodeCounter($nid, $sum_of_pageviews);
+      }
     }
   }
 
@@ -586,7 +589,7 @@ class GoogleAnalyticsCounterManager {
   protected function sumPageviews($aliases) {
 
     // $aliases can make pageview_total greater than pageviews because $aliases
-    // can include page aliases and node/id URIs.
+    // can include page aliases, node/id, and node/id/ URIs.
 
     $hashes = array_map('md5', $aliases);
     $path_counts = $this->connection->select('google_analytics_counter', 'gac')
@@ -598,20 +601,6 @@ class GoogleAnalyticsCounterManager {
       $sum_of_pageviews += $path_count->pageviews;
     }
     return $sum_of_pageviews;
-  }
-
-  /**
-   * Merge the sum of pageviews into google_analytics_counter_storage.
-   *
-   * @param $nid
-   * @param $sum_of_pageviews
-   */
-  protected function mergeGoogleAnalyticsCounterStorage($nid, $sum_of_pageviews) {
-    // Always save the data in our table.
-    $this->connection->merge('google_analytics_counter_storage')
-      ->key(['nid' => $nid])
-      ->fields(['pageview_total' => $sum_of_pageviews])
-      ->execute();
   }
 
   /**
@@ -636,7 +625,113 @@ class GoogleAnalyticsCounterManager {
   }
 
   /****************************************************************************/
-  // Helper functions.
+  // Query functions.
+  /****************************************************************************/
+
+  /**
+   * Merge the sum of pageviews into google_analytics_counter_storage.
+   *
+   * @param $nid
+   * @param $sum_of_pageviews
+   */
+  protected function mergeGoogleAnalyticsCounterStorage($nid, $sum_of_pageviews) {
+    // Always save the data in our table.
+    $this->connection->merge('google_analytics_counter_storage')
+      ->key(['nid' => $nid])
+      ->fields(['pageview_total' => $sum_of_pageviews])
+      ->execute();
+  }
+
+  /**
+   * Merge the sum of pageviews into statistics module's node_counter.
+
+   * @param $nid
+   * @param $sum_of_pageviews
+   */
+  protected function mergeNodeCounter($nid, $sum_of_pageviews) {
+    $this->connection->merge('node_counter')
+      ->key(['nid' => $nid])
+      ->fields([
+        'totalcount' => $sum_of_pageviews,
+        'timestamp' => $this->time->getRequestTime(),
+      ])
+      ->execute();
+  }
+  /**
+   * Get the row count of a table, sometimes with conditions.
+   *
+   * @param string $table
+   * @return mixed
+   */
+  public function getCount($table) {
+    switch ($table) {
+      case 'google_analytics_counter_storage':
+        $query = $this->connection->select($table, 't');
+        $query->addField('t', 'field_pageview_total');
+        $query->condition('pageview_total', 0, '>');
+        break;
+      case 'node_counter':
+        $query = $this->connection->select($table, 't');
+        $query->addField('t', 'field_totalcount');
+        $query->condition('totalcount', 0, '>');
+        break;
+      case 'google_analytics_counter_storage_all_nodes':
+        $query = $this->connection->select('google_analytics_counter_storage', 't');
+        break;
+      case 'queue':
+        $query = $this->connection->select('queue', 'q');
+        $query->condition('name', 'google_analytics_counter_worker', '=');
+        break;
+      default:
+        $query = $this->connection->select($table, 't');
+        break;
+    }
+    return $query->countQuery()->execute()->fetchField();
+  }
+
+  /**
+   * Get the the top twenty results for pageviews and pageview_totals.
+   *
+   * @param string $table
+   * @return mixed
+   */
+  public function getTopTwentyResults($table) {
+    $query = $this->connection->select($table, 't');
+    $query->range(0, 20);
+    $rows = [];
+    switch ($table) {
+      case 'google_analytics_counter':
+        $query->fields('t', ['pagepath', 'pageviews']);
+        $query->orderBy('pageviews', 'DESC');
+        $result = $query->execute()->fetchAll();
+        $rows = [];
+        foreach ($result as $value) {
+          $rows[] = [
+            $value->pagepath,
+            $value->pageviews,
+          ];
+        }
+        break;
+      case 'google_analytics_counter_storage':
+        $query->fields('t', ['nid', 'pageview_total']);
+        $query->orderBy('pageview_total', 'DESC');
+        $result = $query->execute()->fetchAll();
+        foreach ($result as $value) {
+          $rows[] = [
+            $value->nid,
+            $value->pageview_total,
+          ];
+        }
+        break;
+      default:
+        break;
+    }
+
+    return $rows;
+  }
+
+  /****************************************************************************/
+  // Message functions.
   /****************************************************************************/
 
   /**
@@ -708,72 +803,6 @@ class GoogleAnalyticsCounterManager {
     return $build;
   }
 
-  /**
-   * Get the row count of a table, sometimes with conditions.
-   *
-   * @param string $table
-   * @return mixed
-   */
-  public function getCount($table) {
-    switch ($table) {
-      case 'google_analytics_counter_storage':
-        $query = $this->connection->select($table, 't');
-        $query->addField('t', 'field_pageview_total');
-        $query->condition('pageview_total', 0, '!=');
-        break;
-      case 'google_analytics_counter_storage_all_nodes':
-        $query = $this->connection->select('google_analytics_counter_storage', 't');
-        break;
-      case 'queue':
-        $query = $this->connection->select('queue', 'q');
-        $query->condition('name', 'google_analytics_counter_worker', '=');
-        break;
-      default:
-        $query = $this->connection->select($table, 't');
-        break;
-    }
-    return $query->countQuery()->execute()->fetchField();
-  }
 
-  /**
-   * Get the row count of a table, sometimes with conditions.
-   *
-   * @param string $table
-   * @return mixed
-   */
-  public function getTopTwentyResults($table) {
-    $query = $this->connection->select($table, 't');
-    $query->range(0, 20);
-    $rows = [];
-    switch ($table) {
-      case 'google_analytics_counter':
-        $query->fields('t', ['pagepath', 'pageviews']);
-        $query->orderBy('pageviews', 'DESC');
-        $result = $query->execute()->fetchAll();
-        $rows = [];
-        foreach ($result as $value) {
-          $rows[] = [
-            $value->pagepath,
-            $value->pageviews,
-          ];
-        }
-        break;
-      case 'google_analytics_counter_storage':
-        $query->fields('t', ['nid', 'pageview_total']);
-        $query->orderBy('pageview_total', 'DESC');
-        $result = $query->execute()->fetchAll();
-        foreach ($result as $value) {
-          $rows[] = [
-            $value->nid,
-            $value->pageview_total,
-          ];
-        }
-        break;
-      default:
-        break;
-    }
-
-    return $rows;
-  }
 
 }
