@@ -36,14 +36,14 @@ function google_analytics_counter_cron() {
   // We don't want to act every time cron runs, which could be every minute.
   // To avoid this interval, set cron_interval to 0.
   if (\Drupal::time()->getRequestTime() >= \Drupal::state()->get('system.cron_last') + $interval) {
-    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
-    $common = Drupal::service('google_analytics_counter.common');
+    /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager */
+    $manager = Drupal::service('google_analytics_counter.manager');
     $queue = \Drupal::queue('google_analytics_counter_worker');
 
     try {
-      if ($common->isAuthenticated() === TRUE) {
+      if ($manager->isAuthenticated() === TRUE) {
         // Fetch the first batch to see how many there are.
-        $results = $common->getChunkedResults();
+        $results = $manager->getChunkedResults();
         $total = $results->results->totalResults;
         for($index = 0; $index < $total / $config->get('general_settings.chunk_to_fetch'); $index++) {
           // Add a queue item to fetch for all chunks.
@@ -99,10 +99,10 @@ function google_analytics_counter_requirements($phase) {
     '@href_here' => 'authentication here',
     '@href' => 'authenticate here',
   ];
-  /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common */
-  $common = Drupal::service('google_analytics_counter.common');
+  /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager */
+  $manager = Drupal::service('google_analytics_counter.manager');
 
-  if ($common->isAuthenticated() === TRUE) {
+  if ($manager->isAuthenticated() === TRUE) {
     $requirements['google_analytics_counter_authentication'] = [
       'title' => t('Google Analytics Counter'),
       'description' => t('Google Analytics profile ga:%profile_id has been authenticated. You can revoke <a href=:href>@href_here</a>.', $t_args),

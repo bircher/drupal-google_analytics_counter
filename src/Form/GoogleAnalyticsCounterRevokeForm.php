@@ -6,7 +6,7 @@ use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -24,23 +24,23 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
   protected $state;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
    */
-  protected $common;
+  protected $manager;
 
   /**
    * Defines a confirmation form to revoke Google authentication.
    *
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
-   *   Google Analytics Counter Common object.
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   *   Google Analytics Counter Manager object.
    */
-  public function __construct(StateInterface $state, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(StateInterface $state, GoogleAnalyticsCounterManager $manager) {
     $this->state = $state;
-    $this->common = $common;
+    $this->manager = $manager;
   }
 
   /**
@@ -49,7 +49,7 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('state'),
-      $container->get('google_analytics_counter.common')
+      $container->get('google_analytics_counter.manager')
     );
   }
 
@@ -103,13 +103,13 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     // Revoke the state values
-    $this->common->revoke();
+    $this->manager->revoke();
 
     // Set redirect.
     $form_state->setRedirectUrl($this->getCancelUrl());
 
     // Print message.
-    $this->common->notAuthenticatedMessage();
+    $this->manager->notAuthenticatedMessage();
   }
 
 }

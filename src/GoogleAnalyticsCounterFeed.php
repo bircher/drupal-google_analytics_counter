@@ -311,7 +311,7 @@ class GoogleAnalyticsCounterFeed {
     // Provide cache defaults if a developer did not override them.
     $cache_defaults = [
       'cid' => NULL,
-      'expire' => GoogleAnalyticsCounterCommon::cacheTime(),
+      'expire' => GoogleAnalyticsCounterManager::cacheTime(),
       'refresh' => FALSE,
     ];
     $cache_options += $cache_defaults;

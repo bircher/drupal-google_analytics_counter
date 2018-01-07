@@ -7,7 +7,7 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
 use Drupal\google_analytics_counter\GoogleAnalyticsCounterFeed;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -26,11 +26,11 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
   protected $state;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
    */
-  protected $common;
+  protected $manager;
 
   /**
    * Constructs a new SiteMaintenanceModeForm.
@@ -39,13 +39,13 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
    *   The factory for configuration objects.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
-   *   Google Analytics Counter Common object.
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   *   Google Analytics Counter Manager object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterManager $manager) {
     parent::__construct($config_factory);
     $this->state = $state;
-    $this->common = $common;
+    $this->manager = $manager;
   }
 
   /**
@@ -55,7 +55,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     return new static(
       $container->get('config.factory'),
       $container->get('state'),
-      $container->get('google_analytics_counter.common')
+      $container->get('google_analytics_counter.manager')
     );
   }
 
@@ -120,7 +120,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     ];
 
     $t_args = [
-      '%queue_count' => $this->common->getCount('queue'),
+      '%queue_count' => $this->manager->getCount('queue'),
     ];
     $form['queue_time'] = [
       '#type' => 'number',
@@ -236,7 +236,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       ],
     ];
 
-    $options = $this->common->getWebPropertiesOptions();
+    $options = $this->manager->getWebPropertiesOptions();
     if (!$options) {
       $options = [$config->get('general_settings.profile_id') => 'Unauthenticated'];
     }
@@ -254,7 +254,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
       '#description' => $this->t("The google key details can only be changed when not authenticated."),
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
-      '#disabled' => $this->common->isAuthenticated() === TRUE,
+      '#disabled' => $this->manager->isAuthenticated() === TRUE,
     ];
     $form['setup']['client_id'] = [
       '#type' => 'textfield',
@@ -283,7 +283,7 @@ class GoogleAnalyticsCounterAdminSettingsForm extends ConfigFormBase {
     ];
 
     if (empty($config->get('general_settings.profile_id'))) {
-        $this->common->notAuthenticatedMessage();
+        $this->manager->notAuthenticatedMessage();
     }
 
     return parent::buildForm($form, $form_state);

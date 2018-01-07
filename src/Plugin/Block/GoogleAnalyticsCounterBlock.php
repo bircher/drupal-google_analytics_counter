@@ -5,7 +5,7 @@ namespace Drupal\google_analytics_counter\Plugin\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Path\CurrentPathStack;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -27,11 +27,11 @@ class GoogleAnalyticsCounterBlock extends BlockBase implements ContainerFactoryP
   protected $currentPath;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
    */
-  protected $common;
+  protected $manager;
 
   /**
    * Constructs a new SiteMaintenanceModeForm.
@@ -44,14 +44,14 @@ class GoogleAnalyticsCounterBlock extends BlockBase implements ContainerFactoryP
    *   The plugin implementation definition.
    * @param \Drupal\Core\Path\CurrentPathStack $current_path
    *   The current path.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
-   *   Google Analytics Counter Common object.
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   *   Google Analytics Counter Manager object.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, CurrentPathStack $current_path, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, CurrentPathStack $current_path, GoogleAnalyticsCounterManager $manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->currentPath = $current_path;
-    $this->common = $common;
+    $this->manager = $manager;
   }
 
   /**
@@ -63,7 +63,7 @@ class GoogleAnalyticsCounterBlock extends BlockBase implements ContainerFactoryP
       $plugin_id,
       $plugin_definition,
       $container->get('path.current'),
-      $container->get('google_analytics_counter.common')
+      $container->get('google_analytics_counter.manager')
     );
   }
 
@@ -73,7 +73,7 @@ class GoogleAnalyticsCounterBlock extends BlockBase implements ContainerFactoryP
   public function build() {
     return [
       '#theme' => 'google_analytics_counter',
-      '#pageviews' => $this->common->displayGaCount($this->currentPath->getPath()),
+      '#pageviews' => $this->manager->displayGaCount($this->currentPath->getPath()),
     ];
   }
 

@@ -1,6 +1,6 @@
 services:
-  google_analytics_counter.common:
-    class: \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+  google_analytics_counter.manager:
+    class: \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
     arguments: ['@config.factory', '@state', '@database', '@path.alias_manager', '@path.matcher', '@language_manager',  '@logger.channel.google_analytics_counter']
   logger.channel.google_analytics_counter:
     parent: logger.channel_base

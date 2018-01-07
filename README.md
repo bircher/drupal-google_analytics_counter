@@ -83,7 +83,7 @@ The secondary use for this module is to:
    Click Analytics API.
    On the proceeding page, click Enable.
 
-5. You will be sent back on the Google APIs page. Click Credentials in the left-hand column.
+5. You will be sent back to the Google APIs page. Click Credentials in the left-hand column.
 
 6. Click Create credentials. Select OAUTH client ID.
 

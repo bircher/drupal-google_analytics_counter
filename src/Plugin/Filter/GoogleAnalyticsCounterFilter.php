@@ -5,7 +5,7 @@ namespace Drupal\google_analytics_counter\Plugin\Filter;
 use Drupal\filter\FilterProcessResult;
 use Drupal\filter\Plugin\FilterBase;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
 
 /**
  * Add filter to show google analytics counter number.
@@ -55,7 +55,7 @@ class GoogleAnalyticsCounterFilter extends FilterBase {
       // If no path was defined, the function will detect the current
       // page's count.
       // TODO: use dependency injection.
-      $matchlink[] = \Drupal::service('google_analytics_counter.common')->displayGaCount($path);
+      $matchlink[] = \Drupal::service('google_analytics_counter.manager')->displayGaCount($path);
     }
 
     $str = str_replace($orig_match, $matchlink, $str);

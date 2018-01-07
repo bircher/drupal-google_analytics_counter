@@ -6,7 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
 use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -32,11 +32,11 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
   protected $state;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
    */
-  protected $common;
+  protected $manager;
 
   /**
    * Constructs a new SiteMaintenanceModeForm.
@@ -45,13 +45,13 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
    *   The factory for configuration objects.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
-   *   Google Analytics Counter Common object.
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   *   Google Analytics Counter Manager object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterManager $manager) {
     $this->config = $config_factory->get('google_analytics_counter.settings');
     $this->state = $state;
-    $this->common = $common;
+    $this->manager = $manager;
   }
 
   /**
@@ -61,7 +61,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     return new static(
       $container->get('config.factory'),
       $container->get('state'),
-      $container->get('google_analytics_counter.common')
+      $container->get('google_analytics_counter.manager')
     );
   }
 
@@ -78,9 +78,9 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
 
     // Initialize the feed to trigger the fetching of the tokens.
-    $this->common->newGaFeed();
+    $this->manager->newGaFeed();
 
-    if ($this->common->isAuthenticated() === TRUE) {
+    if ($this->manager->isAuthenticated() === TRUE) {
       $form['revoke'] = [
         '#type' => 'fieldset',
         '#title' => $this->t('Revoke authentication'),
@@ -121,7 +121,7 @@ class GoogleAnalyticsCounterAdminAuthForm extends FormBase {
     }
     switch ($op) {
       case 'Authenticate':
-        $this->common->beginAuthentication();
+        $this->manager->beginAuthentication();
         if (!empty($config->get('general_settings.profile_id_prefill'))) {
           \Drupal::configFactory()
             ->getEditable('google_analytics_counter.settings')

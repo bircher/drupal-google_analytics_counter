@@ -7,7 +7,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -46,11 +46,11 @@ class GoogleAnalyticsCounterController extends ControllerBase {
   protected $time;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
    */
-  protected $common;
+  protected $manager;
 
   /**
    * Constructs a Dashboard object.
@@ -61,15 +61,15 @@ class GoogleAnalyticsCounterController extends ControllerBase {
    *   The state keyvalue collection to use.
    * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date formatter service.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon $common
-   *   Google Analytics Counter Common object.
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   *   Google Analytics Counter Manager object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, DateFormatter $date_formatter, GoogleAnalyticsCounterCommon $common) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, DateFormatter $date_formatter, GoogleAnalyticsCounterManager $manager) {
     $this->config = $config_factory->get('google_analytics_counter.settings');
     $this->state = $state;
     $this->dateFormatter = $date_formatter;
     $this->time = \Drupal::service('datetime.time');
-    $this->common = $common;
+    $this->manager = $manager;
   }
 
   /**
@@ -80,7 +80,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       $container->get('config.factory'),
       $container->get('state'),
       $container->get('date.formatter'),
-      $container->get('google_analytics_counter.common')
+      $container->get('google_analytics_counter.manager')
     );
   }
 
@@ -160,7 +160,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
 
     $this->state->get('google_analytics_counter.dayquota_timestamp') == 0 ? $seconds = 60 * 60 * 24 : $seconds = 60 * 60 * 24 - ($this->time->getRequestTime() - $this->state->get('google_analytics_counter.dayquota_timestamp'));
     $build['google_info']['period_ends'] = [
-      '#markup' => $this->t('%sec2hms until the current 24-hour period ends.', ['%sec2hms' => $this->common->sec2hms($seconds)]),
+      '#markup' => $this->t('%sec2hms until the current 24-hour period ends.', ['%sec2hms' => $this->manager->sec2hms($seconds)]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -171,7 +171,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     }
     $t_args = [
       '%chunk_to_fetch' => number_format($config->get('general_settings.chunk_to_fetch')),
-      '%sec2hms' => $this->common->sec2hms($seconds),
+      '%sec2hms' => $this->manager->sec2hms($seconds),
       '%chunk_process_time' => $this->state->get('google_analytics_counter.chunk_process_time') . 's',
       '%chunk_node_process_time' => $this->state->get('google_analytics_counter.chunk_node_process_time') . 's',
     ];
@@ -190,7 +190,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $build['drupal_info']['number_paths_stored'] = [
-      '#markup' => $this->t('%num_of_results paths are currently stored in the local database table.', ['%num_of_results' => number_format($this->common->getCount('google_analytics_counter'))]),
+      '#markup' => $this->t('%num_of_results paths are currently stored in the local database table.', ['%num_of_results' => number_format($this->manager->getCount('google_analytics_counter'))]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
@@ -204,13 +204,13 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     // See https://www.drupal.org/node/2275575
     \Drupal::moduleHandler()->moduleExists('statistics') ? $table = 'node_counter' : $table = 'google_analytics_counter_storage';
     $build['drupal_info']['total_nodes_with_pageviews'] = [
-      '#markup' => $this->t('%num_of_results nodes on this site have pageview counts <em>greater than zero</em>.', ['%num_of_results' => number_format($this->common->getCount($table))]),
+      '#markup' => $this->t('%num_of_results nodes on this site have pageview counts <em>greater than zero</em>.', ['%num_of_results' => number_format($this->manager->getCount($table))]),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     ];
 
     $t_args = [
-      '%num_of_results' => number_format($this->common->getCount('google_analytics_counter_storage_all_nodes')),
+      '%num_of_results' => number_format($this->manager->getCount('google_analytics_counter_storage_all_nodes')),
     ];
     $build['drupal_info']['total_nodes_equal_zero'] = [
       '#markup' => $this->t('%num_of_results nodes on this site have pageview counts.<br /><strong>Note:</strong> The nodes on this site that have pageview counts should equal the number of published nodes.', $t_args),
@@ -219,7 +219,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     ];
 
     $t_args = [
-      '%queue_count' => number_format($this->common->getCount('queue')),
+      '%queue_count' => number_format($this->manager->getCount('queue')),
       ':href' => Url::fromRoute('google_analytics_counter.admin_settings_form', [], ['absolute' => TRUE])
         ->toString(),
       '@href' => 'settings form',
@@ -253,7 +253,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#suffix' => '</p>',
     ];
 
-    $rows = $this->common->getTopTwentyResults('google_analytics_counter');
+    $rows = $this->manager->getTopTwentyResults('google_analytics_counter');
     // Display table
     $build['drupal_info']['top_twenty_results']['counter']['table'] = [
       '#type' => 'table',
@@ -280,7 +280,7 @@ class GoogleAnalyticsCounterController extends ControllerBase {
       '#suffix' => '</p>',
     ];
 
-    $rows = $this->common->getTopTwentyResults('google_analytics_counter_storage');
+    $rows = $this->manager->getTopTwentyResults('google_analytics_counter_storage');
     // Display table
     $build['drupal_info']['top_twenty_results']['storage']['table'] = [
       '#type' => 'table',
@@ -316,16 +316,16 @@ class GoogleAnalyticsCounterController extends ControllerBase {
     }
 
     // Revoke Google authentication.
-    $build = $this->common->revokeAuthenticationMessage($build);
+    $build = $this->manager->revokeAuthenticationMessage($build);
 
-    if ($this->common->isAuthenticated() === TRUE) {
+    if ($this->manager->isAuthenticated() === TRUE) {
       return $build;
     }
     else {
       $build = [];
       // Revoke Google authentication.
-      $build = $this->common->revokeAuthenticationMessage($build);
-      $this->common->notAuthenticatedMessage();
+      $build = $this->manager->revokeAuthenticationMessage($build);
+      $this->manager->notAuthenticatedMessage();
       return $build;
     }
   }

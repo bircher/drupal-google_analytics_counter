@@ -16,11 +16,11 @@ use Exception;
 use Psr\Log\LoggerInterface;
 
 /**
- * Class GoogleAnalyticsCounterCommon.
+ * Class GoogleAnalyticsCounterManager.
  *
  * @package Drupal\google_analytics_counter
  */
-class GoogleAnalyticsCounterCommon {
+class GoogleAnalyticsCounterManager {
 
   use StringTranslationTrait;
 
