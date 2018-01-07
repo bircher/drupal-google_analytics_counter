@@ -3,24 +3,14 @@
  * Google Analytics Counter miscellaneous styling.
  */
 
-@media screen and (min-width: 480px) {
+@media screen and (min-width: 660px) {
   details.google-analytics-counter-counter.js-form-wrapper.form-wrapper {
-    display: block;
+    width: 48%;
+    display: inline-block;
   }
 
   details.google-analytics-counter-storage.js-form-wrapper.form-wrapper {
-    display: block;
-  }
-
-  @media screen and (min-width: 660px) {
-    details.google-analytics-counter-counter.js-form-wrapper.form-wrapper {
-      width: 48%;
-      display: inline-block;
-    }
-
-    details.google-analytics-counter-storage.js-form-wrapper.form-wrapper {
-      width: 48%;
-      display: inline-block;
-    }
+    width: 48%;
+    display: inline-block;
   }
 }
