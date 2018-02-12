@@ -75,7 +75,7 @@ function google_analytics_counter_schema() {
  * Implements hook_uninstall().
  */
 function google_analytics_counter_uninstall() {
-  /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager */
+  /* @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface $manager */
   $manager = Drupal::service('google_analytics_counter.manager');
   // Revoke the state values
   $manager->revoke();

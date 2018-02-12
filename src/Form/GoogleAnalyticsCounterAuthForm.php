@@ -6,7 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -32,9 +32,9 @@ class GoogleAnalyticsCounterAuthForm extends FormBase {
   protected $state;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface
    */
   protected $manager;
 
@@ -45,10 +45,10 @@ class GoogleAnalyticsCounterAuthForm extends FormBase {
    *   The factory for configuration objects.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface Interface$manager
    *   Google Analytics Counter Manager object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterManager $manager) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, GoogleAnalyticsCounterManagerInterface $manager) {
     $this->config = $config_factory->get('google_analytics_counter.settings');
     $this->state = $state;
     $this->manager = $manager;

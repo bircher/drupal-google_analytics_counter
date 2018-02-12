@@ -6,7 +6,7 @@ use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -24,9 +24,9 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
   protected $state;
 
   /**
-   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManager definition.
+   * Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface
    */
   protected $manager;
 
@@ -35,10 +35,10 @@ class GoogleAnalyticsCounterRevokeForm extends ConfirmFormBase {
    *
    * @param \Drupal\Core\State\StateInterface $state
    *   The state keyvalue collection to use.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface $manager
    *   Google Analytics Counter Manager object.
    */
-  public function __construct(StateInterface $state, GoogleAnalyticsCounterManager $manager) {
+  public function __construct(StateInterface $state, GoogleAnalyticsCounterManagerInterface $manager) {
     $this->state = $state;
     $this->manager = $manager;
   }

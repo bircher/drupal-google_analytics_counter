@@ -20,7 +20,7 @@ use Psr\Log\LoggerInterface;
  *
  * @package Drupal\google_analytics_counter
  */
-class GoogleAnalyticsCounterManager {
+class GoogleAnalyticsCounterManager implements GoogleAnalyticsCounterManagerInterface {
 
   use StringTranslationTrait;
 
@@ -270,6 +270,9 @@ class GoogleAnalyticsCounterManager {
     return time() + $config->get('general_settings.cache_length');
   }
 
+  /**
+   * Begin authentication to Google authentication page with the client_id
+   */
   public function beginAuthentication() {
     $gafeed = new GoogleAnalyticsCounterFeed();
     $gafeed->beginAuthentication($this->config->get('general_settings.client_id'), $this->getRedirectUri());

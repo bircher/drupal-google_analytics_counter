@@ -7,7 +7,7 @@ use Drupal\Core\Path\CurrentPathStack;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\filter\FilterProcessResult;
 use Drupal\filter\Plugin\FilterBase;
-use Drupal\google_analytics_counter\GoogleAnalyticsCounterManager;
+use Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @Filter(
  *   id = "google_analytics_counter_filter",
- *   title = @Translation("Google Analytics Counter tag"),
+ *   title = @Translation("Google Analytics Counter token"),
  *   description = @Translation("Substitutes a special Google Analytics Counter token [gac|/my-path] which prints the pageview count."),
  *   type = Drupal\filter\Plugin\FilterInterface::TYPE_MARKUP_LANGUAGE,
  * )
@@ -32,7 +32,7 @@ class GoogleAnalyticsCounterFilter extends FilterBase implements ContainerFactor
   /**
    * Drupal\google_analytics_counter\GoogleAnalyticsCounterCommon definition.
    *
-   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager
+   * @var \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface
    */
   protected $manager;
 
@@ -47,10 +47,10 @@ class GoogleAnalyticsCounterFilter extends FilterBase implements ContainerFactor
    *   The plugin implementation definition.
    * @param \Drupal\Core\Path\CurrentPathStack $current_path
    *   The current path.
-   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManager $manager
+   * @param \Drupal\google_analytics_counter\GoogleAnalyticsCounterManagerInterface $manager
    *   Google Analytics Counter Manager object.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, CurrentPathStack $current_path, GoogleAnalyticsCounterManager $manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, CurrentPathStack $current_path, GoogleAnalyticsCounterManagerInterface $manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->currentPath = $current_path;
